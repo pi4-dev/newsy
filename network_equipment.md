@@ -17,8 +17,15 @@
 | SN5400 | Spectrum-4 SN5000 | 400GbE | 64x QSFP-DD 400G + 2x SFP28 25G | 64x400G / 128x200G / 256x100G / 258x25G | 25.6 Tb/s; 33.3 Bpps | 2U | — | Cumulus Linux, Pure SONiC, NetQ, DSX Air | [NVIDIA](https://www.nvidia.com/en-us/networking/ethernet-switching/) |
 | SN4600C | Spectrum-3 SN4000 | 100GbE | 64x QSFP28 100G | 64x100G / 128x50G / 64x40G / 128x25G | 6.4 Tb/s; 8.4 Bpps | 2U | — | Cumulus Linux, Pure SONiC, NetQ, DSX Air | [NVIDIA](https://www.nvidia.com/en-us/networking/ethernet-switching/) |
 | SN4700 | Spectrum-3 SN4000 | 400GbE | 32x QSFP-DD 400G | 32x400G / 64x200G / 128x100G / 128x50G / 64x40G / 128x25G | 12.8 Tb/s; 8.4 Bpps | 1U | — | Cumulus Linux, Pure SONiC, NetQ, DSX Air | [NVIDIA](https://www.nvidia.com/en-us/networking/ethernet-switching/) |
-| SN3420 | Spectrum-2 SN3000 | 100GbE | 12x QSFP28 100G + 48x SFP28 25G | 12x100G / 12x40G / 96x25G | 2.4 Tb/s; 3.58 Bpps | 1U | — | Cumulus Linux, Pure SONiC, NetQ, DSX Air | [NVIDIA](https://www.nvidia.com/en-us/networking/ethernet-switching/) |
+| SN3420 | Spectrum-2 SN3000 | 100GbE | 12x QSFP28 100G + 48x SFP28 25G | 12x100G / 12x40G / 96x25G | 2.4 Tb/s; 3.57 Bpps | 1U | — | Cumulus Linux, Pure SONiC, NetQ, DSX Air | [NVIDIA](https://www.nvidia.com/en-us/networking/ethernet-switching/) |
 | SN2201 | Spectrum SN2000 | 100GbE | 48x RJ45 + 4x QSFP28 100G | 4x100G / 8x50G / 4x40G / 16x25G / 48x1G | 448 Gb/s; 667 Mpps | 1U | — | Cumulus Linux, Pure SONiC, NetQ, DSX Air | [NVIDIA](https://www.nvidia.com/en-us/networking/ethernet-switching/) |
+
+## Silicon Photonics
+
+| Product | Family | Speed / Architecture | Throughput | Availability / Cooling | Compatibility | Source |
+|---|---|---|---|---|---|---|
+| Q3450-LD | Quantum-X InfiniBand Photonics | 800Gb/s XDR; CPO | 115.2 Tb/s | liquid-cooled | Quantum-X800, 200G SerDes, co-packaged optics | [NVIDIA](https://www.nvidia.com/en-us/networking/products/silicon-photonics/) |
+| Spectrum-X Ethernet Photonics Switches | Spectrum-X Ethernet Photonics | 200G SerDes CPO architecture | up to 409.6 Tb/s | 2H 2026 | Spectrum-X Ethernet, co-packaged optics | [NVIDIA](https://www.nvidia.com/en-us/networking/products/silicon-photonics/) |
 
 ## InfiniBand switches and appliances
 
@@ -31,6 +38,22 @@
 | QM9700 family | Quantum-2 | 400Gb/s NDR | OSFP | 51.2 Tb/s class | — | — | NVOS, UFM; ConnectX-7, NDR/HDR | [NVIDIA](https://www.nvidia.com/en-us/networking/infiniband-switching/) |
 | Skyway | InfiniBand-to-Ethernet Gateway | 100/200 Gb/s per port | 8 ports per InfiniBand and Ethernet side | 1.6 Tb/s | — | — | Gateway software; InfiniBand, Ethernet | [NVIDIA](https://www.nvidia.com/en-us/networking/infiniband-switching/) |
 | MetroX-3 XC | Long-haul InfiniBand | InfiniBand extension | — | up to 40 km reach | — | — | NVOS/UFM ecosystem; DWDM, encrypted long-haul | [NVIDIA](https://www.nvidia.com/en-us/networking/infiniband-switching/) |
+
+## DPU
+
+| Product | Family | Speed | Software | Primary capabilities | Source |
+|---|---|---|---|---|---|
+| BlueField-4 DPU | BlueField | 800Gb/s | NVIDIA DOCA | networking, storage, cybersecurity, secure multi-tenancy | [NVIDIA](https://www.nvidia.com/en-us/networking/products/data-processing-unit/) |
+| BlueField-4 STX Storage Processor | BlueField STX | 800Gb/s network-enforcement class | NVIDIA DOCA | AI-native storage, Vera CPU, in-silicon security | [NVIDIA](https://www.nvidia.com/en-us/networking/products/data-processing-unit/) |
+| BlueField-3 DPU | BlueField | 400Gb/s | NVIDIA DOCA | SDN, storage, cybersecurity, HPC, 5G | [NVIDIA](https://www.nvidia.com/en-us/networking/products/data-processing-unit/) |
+
+## Ethernet SuperNICs
+
+| Product | Family | Speed | Compatibility / Use | Source |
+|---|---|---|---|---|
+| ConnectX-9 SuperNIC | ConnectX SuperNIC | up to 1.6 Tb/s per GPU | Spectrum-X Ethernet, AI fabrics | [NVIDIA](https://www.nvidia.com/en-us/networking/products/ethernet/supernic/) |
+| ConnectX-8 SuperNIC | ConnectX SuperNIC | up to 800 Gb/s total network bandwidth | PCIe Gen6, Spectrum-X Ethernet, AI compute fabrics | [NVIDIA](https://www.nvidia.com/en-us/networking/products/ethernet/supernic/) |
+| BlueField-3 SuperNIC | BlueField SuperNIC | up to 400 Gb/s | Spectrum-X Ethernet, secure cloud multi-tenancy, deterministic isolated performance | [NVIDIA](https://www.nvidia.com/en-us/networking/products/ethernet/supernic/) |
 
 ## UFM management products
 
@@ -50,23 +73,6 @@
 | MMS4B10-XM | 1600G | Transceiver | TRO 1600Gbps OSFP Twin-Port 2xDR4 2xMPO 1310nm SMF up to 500m | [Docs](https://networking-docs.nvidia.com/mms4b10xmtro1600g) |
 | MMS4C1X | 1600G | Transceiver | FRO 1600Gbps 2xDR4 Twin-port OSFP 1310nm SMF up to 500m | [Docs](https://networking-docs.nvidia.com/9iau000xmosfptcvr1600) |
 | MMS4A00 | 1600G | Transceiver | 1600Gbps 2xDR4 Twin-port OSFP 1310nm SMF up to 500m | [Docs](https://networking-docs.nvidia.com/9iahx00xmosfptcvr1600) |
-| MFA7U10-H00x | 400G | AOC | 400Gb/s OSFP to 2x200Gb/s QSFP56 HDR Active Optical Splitter Cable | [Docs](https://networking-docs.nvidia.com/mfa7u10h00x10) |
-| MMA1Z00-NS400 | 400G | Transceiver | 400Gb/s QSFP112 Multimode SR4 | [Docs](https://networking-docs.nvidia.com/mms1z00ns400sr4) |
-| MMS1V00-WM | 400G | Transceiver | 400GbE QSFP-DD DR4 | [Docs](https://networking-docs.nvidia.com/mms1v00wm10) |
-| MMS4X00-NS400 | 400G | Transceiver | 400Gb/s OSFP Single Mode DR4 | [Docs](https://networking-docs.nvidia.com/mms4x00ns400) |
-| MMA4Z00-NS400 | 400G | Transceiver | 400Gb/s OSFP Multimode SR4 50m | [Docs](https://networking-docs.nvidia.com/mma4z00ns400) |
-| MMA4Z00-NS400-T | 400G | Transceiver | 400Gb/s OSFP Multimode 50m | [Docs](https://networking-docs.nvidia.com/mma4z00ns400t) |
-| MMA1Z00-NS400-T | 400G | Transceiver | 400Gb/s QSFP112 Multimode | [Docs](https://networking-docs.nvidia.com/mma1z00ns400t) |
-| MMS1X00-NS400 | 400G | Transceiver | 400Gb/s QSFP112 Single Mode | [Docs](https://networking-docs.nvidia.com/mms1x00ns400) |
-| MCP1600-E0xxEyy | 100G | Copper | 100Gb/s QSFP28 DAC Cable | [Docs](https://networking-docs.nvidia.com/mcp1600e0xxxeyyspec) |
-| MMS1V70-CM | 100G | Transceiver | 100GbE QSFP28 DR1 | [Docs](https://networking-docs.nvidia.com/mms1v70cm10) |
-| MMA1B00-C100D | 100G | Transceiver | 100GbE QSFP28 MMF SR4 | [Docs](https://networking-docs.nvidia.com/mma1b00c100dspec) |
-| MAM1Q00A-QSA | Accessories | Adapter | DynamiX QSA QSFP+ to SFP+ Adapter | [Docs](https://networking-docs.nvidia.com/mam1q00aqsadnmx) |
-| MAM1Q00A-QSA28 | Accessories | Adapter | DynamiX QSA28 QSFP28 to SFP28 Adapter | [Docs](https://networking-docs.nvidia.com/mam1q00aqsa28dnmx) |
-| MFP7E10-Nxxx | Accessories | Fiber | Optical Multimode Fiber Cable | [Docs](https://networking-docs.nvidia.com/mfp7e10nxxx) |
-| MFP7E20-Nxxx | Accessories | Fiber | Optical Multimode Splitter Fiber Cable | [Docs](https://networking-docs.nvidia.com/interconnect) |
-| MFP7E30-Nxxx | Accessories | Fiber | MPO-to-MPO Single-mode Fiber Cable | [Docs](https://networking-docs.nvidia.com/interconnect) |
-| MFP7E40-Nxxx | Accessories | Fiber | Single mode 1:2 Fiber Splitter Cable | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MCA4J80-Nxxx | 800G | Copper | 800Gb/s Twin-port OSFP to 2x400Gb/s OSFP InfiniBand ACC | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MCP4Y10-Nxxx | 800G | Copper | Twin-port 2x400Gb/s OSFP to 2x400Gb/s OSFP Passive DAC | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MCP7Y00-Nxxx | 800G | Copper | 800Gb/s Twin-port 2x400G OSFP to 2x400G OSFP Passive DAC Splitter | [Docs](https://networking-docs.nvidia.com/interconnect) |
@@ -80,17 +86,27 @@
 | MMS4X00-NM16 | 800G | Transceiver | Ethernet 800Gbps OSFP Twin-port Finned 1xMPO16 SMF up to 500m | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MMS4X00-NM-HGX | 800G | Transceiver | 800Gbps Twin-port OSFP InfiniBand and Ethernet 2xDR4 500m | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MMS4X90-NR | 800G | Transceiver | 800Gbps 2xLR4 OSFP 1310nm SMF up to 10km | [Docs](https://networking-docs.nvidia.com/interconnect) |
+| MFA7U10-H00x | 400G | AOC | 400Gb/s OSFP to 2x200Gb/s QSFP56 HDR Active Optical Splitter Cable | [Docs](https://networking-docs.nvidia.com/mfa7u10h00x10) |
+| MMA1Z00-NS400 | 400G | Transceiver | 400Gb/s QSFP112 Multimode SR4 | [Docs](https://networking-docs.nvidia.com/mms1z00ns400sr4) |
+| MMS1V00-WM | 400G | Transceiver | 400GbE QSFP-DD DR4 | [Docs](https://networking-docs.nvidia.com/mms1v00wm10) |
+| MMS4X00-NS400 | 400G | Transceiver | 400Gb/s OSFP Single Mode DR4 | [Docs](https://networking-docs.nvidia.com/mms4x00ns400) |
+| MMA4Z00-NS400 | 400G | Transceiver | 400Gb/s OSFP Multimode SR4 50m | [Docs](https://networking-docs.nvidia.com/mma4z00ns400) |
+| MMA4Z00-NS400-T | 400G | Transceiver | 400Gb/s OSFP Multimode 50m | [Docs](https://networking-docs.nvidia.com/mma4z00ns400t) |
+| MMA1Z00-NS400-T | 400G | Transceiver | 400Gb/s QSFP112 Multimode | [Docs](https://networking-docs.nvidia.com/mma1z00ns400t) |
+| MMS1X00-NS400 | 400G | Transceiver | 400Gb/s QSFP112 Single Mode | [Docs](https://networking-docs.nvidia.com/mms1x00ns400) |
 | MFS1S00-HxxxV | 200G | AOC | 200Gb/s QSFP56 MMF AOC | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MMS1W50-HM | 200G | Transceiver | 200Gb/s QSFP56 FR4 | [Docs](https://networking-docs.nvidia.com/interconnect) |
+| MCP1600-E0xxEyy | 100G | Copper | 100Gb/s QSFP28 DAC Cable | [Docs](https://networking-docs.nvidia.com/mcp1600e0xxxeyyspec) |
+| MMS1V70-CM | 100G | Transceiver | 100GbE QSFP28 DR1 | [Docs](https://networking-docs.nvidia.com/mms1v70cm10) |
+| MMA1B00-C100D | 100G | Transceiver | 100GbE QSFP28 MMF SR4 | [Docs](https://networking-docs.nvidia.com/mma1b00c100dspec) |
 | MMA2P00-AS | 25G | Transceiver | 25GbE SFP28 MMF Transceiver | [Docs](https://networking-docs.nvidia.com/interconnect) |
-
-## Source inventory
-
-- [NVIDIA LinkX Interconnect Documentation](https://networking-docs.nvidia.com/interconnect)
-- [NVIDIA Ethernet Switching](https://www.nvidia.com/en-us/networking/ethernet-switching/)
-- [NVIDIA InfiniBand Switching](https://www.nvidia.com/en-us/networking/infiniband-switching/)
-- [NVIDIA UFM](https://www.nvidia.com/en-us/networking/infiniband/ufm/)
+| MAM1Q00A-QSA | Accessories | Adapter | DynamiX QSA QSFP+ to SFP+ Adapter | [Docs](https://networking-docs.nvidia.com/mam1q00aqsadnmx) |
+| MAM1Q00A-QSA28 | Accessories | Adapter | DynamiX QSA28 QSFP28 to SFP28 Adapter | [Docs](https://networking-docs.nvidia.com/mam1q00aqsa28dnmx) |
+| MFP7E10-Nxxx | Accessories | Fiber | Optical Multimode Fiber Cable | [Docs](https://networking-docs.nvidia.com/mfp7e10nxxx) |
+| MFP7E20-Nxxx | Accessories | Fiber | Optical Multimode Splitter Fiber Cable | [Docs](https://networking-docs.nvidia.com/interconnect) |
+| MFP7E30-Nxxx | Accessories | Fiber | MPO-to-MPO Single-mode Fiber Cable | [Docs](https://networking-docs.nvidia.com/interconnect) |
+| MFP7E40-Nxxx | Accessories | Fiber | Single mode 1:2 Fiber Splitter Cable | [Docs](https://networking-docs.nvidia.com/interconnect) |
 
 ---
 
-This file is a presentation layer over the normalized monitoring state. Update the JSON snapshot first, then regenerate this page so it remains consistent with change detection.
+Source of truth: [`data/nvidia-interconnects.json`](data/nvidia-interconnects.json). The catalog intentionally excludes records marked `no_longer_for_sale`.
