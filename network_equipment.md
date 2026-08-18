@@ -1,6 +1,6 @@
 # NVIDIA Network Equipment
 
-> Static catalog generated from [`data/nvidia-interconnects.json`](data/nvidia-interconnects.json). Snapshot date: **2026-08-18** (Europe/Warsaw). Only records with `lifecycle: active` are shown.
+> Static catalog generated from [`data/nvidia-interconnects.json`](data/nvidia-interconnects.json). Snapshot date: **2026-08-18** (Europe/Warsaw). Only active/current portfolio records are shown. Transceiver detail reflects normalized schema **v4**.
 
 ## Ethernet switches
 
@@ -62,6 +62,37 @@
 | UFM Telemetry | UFM platform | container / dedicated appliance | switch/adapters/cables telemetry; on-prem/cloud database | [NVIDIA](https://www.nvidia.com/en-us/networking/infiniband/ufm/) |
 | UFM Enterprise | UFM platform | container / dedicated appliance | Slurm, IBM Spectrum LSF, REST API | [NVIDIA](https://www.nvidia.com/en-us/networking/infiniband/ufm/) |
 | UFM Cyber-AI | UFM platform | dedicated on-prem appliance | UFM Telemetry, UFM Enterprise | [NVIDIA](https://www.nvidia.com/en-us/networking/infiniband/ufm/) |
+
+## Active NVIDIA LinkX transceivers — normalized detail
+
+> Fields below are rendered directly from the normalized transceiver records in `data/nvidia-interconnects.json`: protocol, medium, reach, cable-side interface count/speed/type, wavelength, part numbers and source notes.
+
+| Model | Speed | Protocol | Medium | Reach | Cable interfaces | λ | Part number(s) | Notes | Source |
+|---|---|---|---|---|---|---|---|---|---|
+| MMS4B10-XM | 1600G | Ethernet | SMF | 500 m | 2 × 800Gb/s — MPO-12/APC | 1310 nm | — | Ordering-information URL was not retrievable during this refresh. | [Docs](https://networking-docs.nvidia.com/mms4b10xmtro1600g) |
+| MMS4C1X | 1600G | InfiniBand XDR (MMS4C10); Ethernet (MMS4C11) | SMF | 500 m | 2 × 800Gb/s — MPO-12/APC | 1310 nm | 980-9IAU0-00XM00; 980-9IAU0-00XM01; 980-9IAU1-00XM00; 980-9IAU1-00XM01 | — | [Docs](https://networking-docs.nvidia.com/9iau000xmosfptcvr1600) |
+| MMS4A00 | 1600G | InfiniBand XDR | SMF | 500 m | 2 × 800Gb/s — MPO-12/APC | 1310 nm | 980-9IAH1-00XM00; 980-9IAH0-00XM00 | — | [Docs](https://networking-docs.nvidia.com/9iahx00xmosfptcvr1600) |
+| MMA1Z00-NS400 | 400G | InfiniBand; Ethernet | MMF | OM3 30 m; OM4 50 m | 1 × 400Gb/s — MPO-12/APC | 850 nm | 980-9I693-00NS00 | — | [Docs](https://networking-docs.nvidia.com/mms1z00ns400sr4) |
+| MMS1V00-WM | 400G | Ethernet | SMF | 500 m | 1 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I16Y-00W000 | — | [Docs](https://networking-docs.nvidia.com/mms1v00wm10) |
+| MMS4X00-NS400 | 400G | InfiniBand; Ethernet | SMF | 100 m | 1 × 400Gb/s — MPO-12/APC | — | 980-9I31N-00NM00 | — | [Docs](https://networking-docs.nvidia.com/mms4x00ns400) |
+| MMA4Z00-NS400 | 400G | InfiniBand; Ethernet | MMF | OM3 30 m; OM4 50 m | 1 × 400Gb/s — MPO-12/APC | 850 nm | 980-9I51S-00NS00 | — | [Docs](https://networking-docs.nvidia.com/mma4z00ns400) |
+| MMA4Z00-NS400-T | 400G | Ethernet | MMF | 50 m | 1 × 400Gb/s — MPO-12/APC | 850 nm | 980-9I51S-F4NS00 | — | [Docs](https://networking-docs.nvidia.com/mma4z00ns400t) |
+| MMA1Z00-NS400-T | 400G | Ethernet | MMF | 50 m | 1 × 400Gb/s — MPO-12/APC | 850 nm | 980-9I693-F4NS00 | — | [Docs](https://networking-docs.nvidia.com/mma1z00ns400t) |
+| MMS1X00-NS400 | 400G | InfiniBand; Ethernet | SMF | 500 m normalized; intro: 500 m; ordering description: 100 m | 1 × 400Gb/s — MPO-12/APC | — | 980-9I068-00NM00 | NVIDIA introduction states 500 m while ordering description states up to 100 m; both values retained in JSON. | [Docs](https://networking-docs.nvidia.com/mms1x00ns400) |
+| MMS1V70-CM | 100G | Ethernet | SMF | 500 m | 1 × 100Gb/s — LC/LC duplex-compatible DR1 path | 1310 nm | 980-9I042-00C000 | — | [Docs](https://networking-docs.nvidia.com/mms1v70cm10) |
+| MMA1B00-C100D | 100G | Ethernet | MMF | OM3 70 m; OM4 100 m | 1 × 100Gb/s — MPO-12/UPC | 850 nm | 980-9I149-00CS00 | — | [Docs](https://networking-docs.nvidia.com/mma1b00c100dspec) |
+| MMS4X00-NM-T | 800G | Ethernet | SMF | 500 m | 2 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I30G-F4NM00 | — | [Docs](https://networking-docs.nvidia.com/mms4x00nmt800g) |
+| MMS4X00-NM | 800G | InfiniBand; Ethernet | SMF | 500 m | 2 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I30G-00NM00; 980-9I301-00NM00 | — | [Docs](https://networking-docs.nvidia.com/mms4x00nm800g500m) |
+| MMS4X50-NM | 800G | InfiniBand; Ethernet | SMF | 2 km | 2 × 400Gb/s — Duplex LC | 1310 nm | 980-9I30L-00N000 | — | [Docs](https://networking-docs.nvidia.com/mms4x50nm800g2kmpub) |
+| MMS4X00-NS | 800G | InfiniBand; Ethernet | SMF | 100 m | 2 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I30H-00NM00; 980-9I30I-00NM00 | — | [Docs](https://networking-docs.nvidia.com/800gmms4x00ns) |
+| MMA4Z00-NS-T | 800G | Ethernet | MMF | OM3 30 m; OM4 50 m | 2 × 400Gb/s — MPO-12/APC | 850 nm | 980-9I510-F4NS00 | — | [Docs](https://networking-docs.nvidia.com/800gmma4z00nst) |
+| MMS4X00-NS-T | 800G | Ethernet | SMF | 100 m | 2 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I30H-F4NM00 | — | [Docs](https://networking-docs.nvidia.com/800gmms4x00nst) |
+| MMS4A20 | 800G | InfiniBand XDR | SMF | 500 m | 1 × 800Gb/s — MPO-12/APC | 1310 nm | 980-9IAT0-00XM00 | — | [Docs](https://networking-docs.nvidia.com/9iat0mosfp800sprhs) |
+| MMS4X00-NM16 | 800G | Ethernet | SMF | 500 m | 1 × 800Gb/s — MPO-16/APC | 1310 nm | 980-9I30J-F4NM00 | — | [Docs](https://networking-docs.nvidia.com/mms4x00nm16) |
+| MMS4X00-NM-HGX | 800G | InfiniBand; Ethernet | SMF | 500 m | 2 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I302-00NM00 | — | [Docs](https://networking-docs.nvidia.com/mms4x00nmhgx500) |
+| MMS4X90-NR | 800G | InfiniBand; Ethernet | SMF | 10 km | 2 × 400Gb/s — Duplex LC | 1310 nm | — | Current NVIDIA ordering page displays MMS4X50-NM / 980-9I30L-00N000 (2 km FR4), inconsistent with the 10 km LR4 product page; unverified OPN omitted. | [Docs](https://networking-docs.nvidia.com/mms4x90nr800g) |
+| MMS1W50-HM | 200G | InfiniBand HDR | SMF | 2 km | 1 × 200Gb/s — Duplex LC/UPC | 1310 nm | MMS1W50-HM | — | [Docs](https://networking-docs.nvidia.com/mms1w50hmspec) |
+| MMA2P00-AS | 25G | Ethernet | MMF | OM3 70 m; OM4 100 m | 1 × 25Gb/s — Duplex LC/UPC | 850 nm | MMA2P00-AS | — | [Docs](https://networking-docs.nvidia.com/mma2p00asspec) |
 
 ## Active NVIDIA LinkX interconnects
 
