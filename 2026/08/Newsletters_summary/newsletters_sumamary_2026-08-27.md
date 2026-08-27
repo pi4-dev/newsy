@@ -69,3 +69,18 @@
 - TLDR IT — „OpenAI’s Jalapeño chip…, GPT-5.6 hits AWS GovCloud…”, 2026-08-26.
 
 Nie powtórzono Jalapeño, ponieważ temat został zapisany w raporcie z 2026-08-26.
+
+
+---
+
+## Vercel Connect: krótkotrwałe poświadczenia dla agentów zamiast stałych sekretów
+
+**Technologia / Zdarzenie:** [Vercel Connect](https://vercel.com/kb/vercel-connect)
+
+**Mechanizm działania:** Vercel Connect centralizuje połączenia agentów z zewnętrznymi usługami i wydaje poświadczenia w runtime zamiast przekazywać stałe tokeny przez kod, zmienne środowiskowe lub prompt. Dla integracji OAuth token może być związany z konkretnym użytkownikiem, a wywołanie runtime jest uwierzytelniane przez Vercel OIDC; model może więc żądać dostępu do narzędzia bez bezpośredniego posiadania długowiecznego sekretu.
+
+**Wpływ na architekturę:** Wzorzec rozdziela execution plane agenta od credential plane i upraszcza rotację, offboarding oraz audyt dostępu. Dla środowisk produkcyjnych warto logować subject, connector, zakres tokenu, identyfikator sesji/agenta i wykonane operacje oraz wymuszać osobne polityki dla read-only i zmian destrukcyjnych.
+
+**Failure modes i edge cases:** Krótkie TTL nie pomaga, jeśli broker poświadczeń pozwala agentowi pozyskać zbyt szeroki zakres albo jeśli prompt injection może wymusić użycie legalnego connectora do nielegalnej operacji. Deterministyczny fallback to deny-by-default, minimalny scope per task, allow-list connectorów, approval dla operacji o wysokim blast radius, natychmiastowa revocation oraz brak ekspozycji tokenu do kontekstu modelu.
+
+**Źródło newslettera:** TLDR AI — „OpenAI Jalapeño 🌶️, Perplexity Portable Computer 💻, Claude combines memory 🧠”, 2026-08-26. Pozostałe tematy z tej wiadomości pominięto jako duplikaty albo materiały o niższej wartości infrastrukturalnej.
