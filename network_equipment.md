@@ -1,6 +1,6 @@
 # NVIDIA Network Equipment
 
-> Static catalog generated from [`data/nvidia-interconnects.json`](data/nvidia-interconnects.json). Snapshot date: **2026-08-18** (Europe/Warsaw). Only active/current portfolio records are shown. Transceiver detail reflects normalized schema **v4**.
+> Static catalog generated from [`data/nvidia-interconnects.json`](data/nvidia-interconnects.json). Snapshot date: **2026-08-28** (Europe/Warsaw). Only active/current portfolio records are shown. Transceiver detail reflects normalized schema **v4**.
 
 ## Ethernet switches
 
@@ -81,6 +81,7 @@
 | MMS1X00-NS400 | 400G | InfiniBand; Ethernet | SMF | 500 m normalized; intro: 500 m; ordering description: 100 m | 1 × 400Gb/s — MPO-12/APC | — | 980-9I068-00NM00 | NVIDIA introduction states 500 m while ordering description states up to 100 m; both values retained in JSON. | [Docs](https://networking-docs.nvidia.com/mms1x00ns400) |
 | MMS1V70-CM | 100G | Ethernet | SMF | 500 m | 1 × 100Gb/s — LC/LC duplex-compatible DR1 path | 1310 nm | 980-9I042-00C000 | — | [Docs](https://networking-docs.nvidia.com/mms1v70cm10) |
 | MMA1B00-C100D | 100G | Ethernet | MMF | OM3 70 m; OM4 100 m | 1 × 100Gb/s — MPO-12/UPC | 850 nm | 980-9I149-00CS00 | — | [Docs](https://networking-docs.nvidia.com/mma1b00c100dspec) |
+| MMS4C10-XM800 | 800G | InfiniBand XDR; Ethernet 800GbE | SMF | 500 m | 1 × 800Gb/s — MPO-12/APC | 1310 nm | 980-9IAY0-00XM00 | Product-level docs identify single-port DR4/1×MPO; catalog title is inconsistent and says twin-port 2×DR4/2×MPO. | [Docs](https://networking-docs.nvidia.com/mms4c1x800) |
 | MMS4X00-NM-T | 800G | Ethernet | SMF | 500 m | 2 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I30G-F4NM00 | — | [Docs](https://networking-docs.nvidia.com/mms4x00nmt800g) |
 | MMS4X00-NM | 800G | InfiniBand; Ethernet | SMF | 500 m | 2 × 400Gb/s — MPO-12/APC | 1310 nm | 980-9I30G-00NM00; 980-9I301-00NM00 | — | [Docs](https://networking-docs.nvidia.com/mms4x00nm800g500m) |
 | MMS4X50-NM | 800G | InfiniBand; Ethernet | SMF | 2 km | 2 × 400Gb/s — Duplex LC | 1310 nm | 980-9I30L-00N000 | — | [Docs](https://networking-docs.nvidia.com/mms4x50nm800g2kmpub) |
@@ -107,6 +108,7 @@
 | MCA4J80-Nxxx | 800G | Copper | 800Gb/s Twin-port OSFP to 2x400Gb/s OSFP InfiniBand ACC | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MCP4Y10-Nxxx | 800G | Copper | Twin-port 2x400Gb/s OSFP to 2x400Gb/s OSFP Passive DAC | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MCP7Y00-Nxxx | 800G | Copper | 800Gb/s Twin-port 2x400G OSFP to 2x400G OSFP Passive DAC Splitter | [Docs](https://networking-docs.nvidia.com/interconnect) |
+| MMS4C10-XM800 | 800G | Transceiver | Gen2 800Gb/s DR4 single-port OSFP, 1xMPO-12/APC, 1310nm SMF up to 500m; XDR + Ethernet | [Docs](https://networking-docs.nvidia.com/mms4c1x800) |
 | MMS4X00-NM-T | 800G | Transceiver | 800Gbps Twin-port OSFP 2x400Gb/s Single Mode 500m | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MMS4X00-NM | 800G | Transceiver | 800Gbps Twin-port OSFP 2x400Gb/s InfiniBand and Ethernet 2xDR4 500m | [Docs](https://networking-docs.nvidia.com/interconnect) |
 | MMS4X50-NM | 800G | Transceiver | 800Gbps Twin-port OSFP 2xFR4 Single Mode 2km | [Docs](https://networking-docs.nvidia.com/interconnect) |
