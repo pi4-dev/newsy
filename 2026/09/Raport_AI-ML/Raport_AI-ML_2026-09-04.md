@@ -5,7 +5,7 @@
 
 ## Biznes
 
-### NVIDIA finalizuje przejęcie Hugging Face za 12,93 mld USD — materialna aktualizacja
+### NVIDIA ogłasza umowę przejęcia Hugging Face za 12,93 mld USD — materialna aktualizacja
 
 NVIDIA ogłosiła 3 września przejęcie Hugging Face za 12,93 mld USD: 11,9 mld USD trafi do inwestorów, a do 1 mld USD przewidziano w akcjach retencyjnych. Jest to materialna zmiana względem wcześniejszych informacji o rozmowach: neutralna dotąd warstwa dystrybucji modeli, datasetów i bibliotek trafia pod kontrolę dominującego dostawcy akceleratorów.
 
