@@ -1,0 +1,60 @@
+# Raport AI-ML — 2026-09-16
+
+**Data podsumowania:** 2026-09-16  
+**Okno przyrostowe:** od edycji z 2026-09-15 do 2026-09-16 07:32 CEST
+
+## Biznes
+
+### Delos Data pozyskuje 100 mln USD na układy sieciowe dla heterogenicznych klastrów AI
+
+Delos Data, założone przez byłych inżynierów Intela, zebrało 100 mln USD na rozwój układów i oprogramowania do przenoszenia danych między różnymi typami akceleratorów w centrach AI. Finansowanie potwierdza, że fabric i transport danych stają się odrębną warstwą konkurencji wobec dominujących, pionowo zintegrowanych stosów; spółka nie ujawniła jednak jeszcze mierzalnych parametrów przepustowości, opóźnień, niezawodności ani interoperacyjności.
+
+**Znaczenie architektoniczne:** Nie należy kwalifikować rozwiązania do produkcji na podstawie finansowania. Krytyczne będą testy collective communication w mieszanych domenach GPU/XPU, integracja z telemetryką i schedulerem oraz dowód, że warstwa abstrahująca fabric nie tworzy nowego lock-inu.
+
+**Źródło:** [Reuters, 15.09.2026](https://www.reuters.com/business/delos-data-chip-startup-founded-by-intel-veterans-raises-100-million-ai-networks-2026-09-15/)
+
+### Axelera uruchamia Europę w systemach Dell i Supermicro
+
+Axelera ogłosiła 15 września produkcyjne wdrożenie architektury Europa dla inference, w tym walidowane systemy Dell i Supermicro. Firma podaje ponad 600 klientów i pipeline sprzedażowy przekraczający 1,5 mld USD, ale pipeline nie jest przychodem ani zakontraktowanym backlogiem; deklarowane do 6× tokenów/s/W pochodzi z wewnętrznych testów producenta.
+
+**Znaczenie architektoniczne:** Europa rozszerza europejską alternatywę sprzętową poza edge do serwerów, lecz decyzja zakupowa wymaga niezależnych benchmarków p95/p99 latency, batch sensitivity, jakości kwantyzacji, obsługi modeli i kosztu migracji z CUDA. Obecność w katalogach dużych OEM ogranicza ryzyko integracji mechanicznej i serwisowej, nie usuwa ryzyka dojrzałości SDK.
+
+**Źródła:** [Axelera AI, 15.09.2026](https://axelera.ai/news/axelera-ai-launches-europa-delivers-physical-and-enterprise-ai-through-growing-partner-ecosystem-including-dell-and-supermicro), [Reuters, 15.09.2026](https://www.reuters.com/business/european-chip-startup-axelera-wins-ai-factory-supply-deals-launches-second-chip-2026-09-15/)
+
+### Moratoria obejmują więcej mocy niż faktycznie opóźniają
+
+SemiAnalysis oszacowało 15 września, że z około 20 GW projektów znajdujących się w granicach lokalnych ograniczeń tylko 1,525 GW jest bezpośrednio opóźnione, a wraz z Nowym Jorkiem około 2,3 GW. To analiza dostawcy modelu rynku, nie dane regulatora, ale opiera się na dopasowaniu ograniczeń do działek, pozwoleń i harmonogramów ponad 6000 obiektów; prognoza +38 GW dostarczonej mocy IT w USA w 2027 pozostaje scenariuszem, nie gwarancją.
+
+**Znaczenie architektoniczne:** Capacity planning powinien rozdzielać ekspozycję regulacyjną od opóźnienia na ścieżce krytycznej. Ryzyko przesuwa się w stronę konkretnej działki, stanu pozwoleń, przyłącza i modelu behind-the-meter, więc agregaty „liczba moratoriów” są zbyt słabe do decyzji o rezerwacji mocy.
+
+**Źródło:** [SemiAnalysis, 15.09.2026](https://newsletter.semianalysis.com/p/everyone-says-datacenter-moratoriums)
+
+## Technologia
+
+### NVLink 6 łączy odporność PHY, fabric, control plane i runtime
+
+NVIDIA opisała 15 września wielowarstwowy mechanizm odporności NVLink 6: lekki FEC, Physical Layer Retry i odzyskiwanie UPHY, credit-based flow control, izolację i rebalancing uszkodzonych łączy oraz redundantny kontroler NMX. Na poziomie runtime Dynamo Shadow Engine Recovery utrzymuje rozgrzaną replikę; producent podaje 7,3 s przywrócenia pojemności inference wobec 283 s zimnego restartu na B200, a wsparcie checkpointów wielowęzłowych NCCL/cuda-checkpoint pozostaje zapowiedziane na koniec roku.
+
+**Znaczenie architektoniczne:** SLO klastra trzeba mierzyć jako goodput i czas utraty całej domeny scale-up, nie tylko dostępność pojedynczego GPU. Mechanizmy ograniczają blast radius, ale zwiększają zależność od spójnego stosu NVLink/NMX/NCCL/Dynamo; wartości recovery wymagają powtórzenia na własnym modelu, topologii i obciążeniu.
+
+**Źródło:** [NVIDIA Technical Blog, 15.09.2026](https://developer.nvidia.com/blog/how-nvidia-nvlink-6-delivers-multi-layer-resiliency-for-ai-factories/)
+
+## Implikacje praktyczne
+
+1. W RFP dla alternatywnych akceleratorów wymagaj niezależnych wyników p50/p95/p99, tokenów/s/W, czasu odtworzenia po awarii oraz eksportu telemetryki; deklaracje producenta traktuj jako hipotezy testowe.
+2. Oddziel API model-serving od backendu sprzętowego i utrzymuj obrazy/artefakty dla co najmniej dwóch runtime’ów, ale wyceniaj realny koszt kompilacji, operatorów i optymalizacji per układ.
+3. Capacity planning prowadź na poziomie działki i transzy MW: pozwolenia, przyłącze, generacja lokalna, sprzęt długoterminowy i data energization powinny być osobnymi ryzykami.
+4. Dla domen scale-up zdefiniuj SLO goodput, MTBI i recovery time; testuj degradację łącza, reset control plane, utratę tray’a i wznowienie procesu, nie tylko awarię hosta.
+5. Horyzont 3–5 lat: największym ryzykiem kosztowym jest nie sam brak GPU, lecz związanie aplikacji z fabric, kompilatorem i narzędziami obserwowalności jednego dostawcy.
+
+## Trend tygodnia
+
+Konkurencja przesuwa się z pojedynczego akceleratora na kompletny system: interconnect, runtime, odporność oraz dostęp do energii. Europejskie układy inference zyskują kanały OEM, ale ich przewaga kosztowa pozostanie niewiarygodna bez niezależnych testów pełnego stosu. Jednocześnie regulacyjne nagłówki o centrach danych nie przekładają się liniowo na utracone MW — przewagę uzyskują operatorzy śledzący projekty na poziomie pozwoleń i ścieżki krytycznej.
+
+## To obserwować
+
+- niezależne benchmarki Europa na systemach Dell/Supermicro i tempo rozszerzania obsługiwanych modeli;
+- specyfikacje Delos Data: topologia, protokół, skalowanie collective operations i integracja z schedulerami;
+- dostępność produkcyjna checkpoint/restore dla NCCL i powtarzalność czasu odzyskania Dynamo;
+- różnicę między pipeline’em, zakontraktowanym backlogiem i rozpoznanym przychodem nowych dostawców akceleratorów;
+- MW faktycznie opóźnione przez pozwolenia wobec MW jedynie znajdujących się w granicach ograniczeń.
