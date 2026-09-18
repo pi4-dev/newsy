@@ -1,81 +1,82 @@
-# Newsy — 2026-09-17
+# Newsy — 2026-09-18
 
-**Data podsumowania:** 2026-09-17  
-**Okno przyrostowe:** od raportu 2026-09-16 do 2026-09-17 07:30 CEST
+**Data podsumowania:** 2026-09-18  
+**Okno przyrostowe:** od raportu 2026-09-17 do 2026-09-18 07:30 CEST
 
 ## Raport technologiczny
 
 ### Technologia
 
-#### Cisco FMC: dwa krytyczne RCE bez obejścia
+#### Cisco ISE: aktywnie wykorzystywany auth bypass CVSS 10.0
 
-Cisco opublikowało 16 września dwa krytyczne problemy FMC. CVE-2026-20242 (CVSS 9.8) umożliwia nieuwierzytelnionemu atakującemu zdalne wykonanie poleceń jako root przez External Database Access; CVE-2026-20324 (CVSS 9.9) pozwala zarejestrowanemu lub przejętemu peerowi `sftunnel` zapisać arbitralny plik i osiągnąć root RCE. Cisco nie podaje workaroundów.
+Cisco opublikowało 16 września CVE-2026-76460 w ISE/ISE-PIC: nieuwierzytelniony zdalny atakujący może ominąć uwierzytelnienie API; CVSS 10.0, brak workaroundu, Cisco potwierdza aktywne wykorzystanie. Równoległy wrześniowy hardening ISE obejmuje dodatkowe klasy błędów REST/RCE/SQLi/XXE, więc traktowanie poprawki jako pojedynczego hotfixu jest niewystarczające.
 
-**Znaczenie:** FMC jest control plane'em całej domeny firewalli, więc kompromitacja ma blast radius znacznie większy niż pojedynczy sensor. Priorytetem jest upgrade FMC, ograniczenie reachability interfejsów zarządzających i sftunnel, przegląd peerów oraz hunting pod kątem nietypowych zapisów plików i procesów uruchamianych przez usługi FMC.
+**Znaczenie:** ISE jest elementem NAC/AAA i policy control plane; kompromitacja może podważyć zaufanie do tożsamości i segmentacji w całej domenie. Priorytet: upgrade do fixed release, ograniczenie reachability API/GUI do management plane, rotacja sekretów po podejrzeniu kompromitacji i weryfikacja zmian policy/config.
 
-**Źródła:** [Cisco — CVE-2026-20242](https://www.cisco.com/c/en/us/support/docs/csa/cisco-sa-fmc-javarce-y2NypXwk.html), [Cisco — CVE-2026-20324](https://www.cisco.com/c/en/us/support/docs/csa/cisco-sa-fmc-sftunn-codex-c3O4Jft2.html)
+**Źródła:** [Cisco — CVE-2026-76460](https://www.cisco.com/c/en/us/support/docs/csa/cisco-sa-ISE-ABP-VNSW7Tn5.html), [Cisco — ISE hardening September 2026](https://www.cisco.com/c/en/us/support/docs/csa/cisco-sa-hardening-ise-XU5EwX5T.html)
 
 ## Raport AI-ML
 
-### Biznes
-
-#### Crusoe przejmuje pełny lifecycle modeli Perplexity
-
-Crusoe ogłosiło 15 września wieloletnią umowę, w której Perplexity ma trenować modele na dedykowanych GB300 NVL72 z InfiniBand i korzystać z Managed Inference tej samej chmury. Konsolidacja training + serving upraszcza transfer artefaktów i operacje, ale zwiększa zależność od jednego operatora infrastruktury oraz jego capacity planningu.
-
-**Znaczenie architektoniczne:** Przy takim modelu kontraktu należy wymagać przenośności checkpointów, danych i obrazów runtime, mierzyć koszt egress oraz osobno definiować SLO dla treningu i inference. Awaria regionalna lub niedobór capacity jednego operatora może jednocześnie zatrzymać pipeline treningowy i produkcyjny serving.
-
-**Źródło:** [Crusoe, 15.09.2026](https://www.crusoe.ai/resources/newsroom/crusoe-perplexity-partnership)
-
 ### Technologia
 
-#### CoreWeave uruchamia wielorackowy Vera Rubin NVL72
+#### Google Agent Substrate: osobny data plane dla masowych sandboxów agentów
 
-CoreWeave ogłosiło 16 września uruchomienie klastra obejmującego wiele racków Vera Rubin NVL72. Pojedynczy rack łączy 72 Rubin GPU, 36 Vera CPU, NVLink 6, ConnectX-9, BlueField-4 i chłodzenie cieczą 45°C; domeny rackowe są spinane Spectrum-6 Ethernet, więc skalowanie wymaga jednoczesnej walidacji fabric, firmware, storage, zasilania i termiki.
+Google udostępnił Agent Substrate na GKE: runtime rozdziela lifecycle sandboxów od standardowego Kubernetes Pod lifecycle, używa pre-warmed workers, snapshot/resume oraz microVM Cloud Hypervisor lub gVisor. Deklarowane parametry to <500 ms resume, >500 aktywacji suspend/resume/s i >1000 uśpionych agentów/host, przy snapshotach lokalnych i w Cloud Storage.
 
-**Znaczenie architektoniczne:** Granicą wydajności staje się synchronizacja wielu domen NVLink, a nie sam GPU. Straggler GPU lub marginalny link może obniżyć collective goodput całego jobu; acceptance test powinien obejmować NCCL/all-reduce pod degradacją linków, telemetrykę per rail, thermal throttling i zachowanie schedulera przy częściowej utracie racka.
+**Znaczenie architektoniczne:** Przy dużej liczbie agentów bottleneck przesuwa się z inference na churn środowisk wykonawczych, storage snapshotów i credential/egress isolation. Rozdzielenie K8s jako machine control plane od lokalnego high-frequency sandbox data plane ogranicza presję na API server/scheduler; failure modes obejmują storm resume, hotspot lokalnego dysku/GCS, stale snapshots oraz błędną politykę egress/credential injection.
 
-**Źródła:** [CoreWeave, 16.09.2026](https://coreweave.com/news/coreweave-brings-up-multi-rack-nvidia-vera-rubin-nvl72-cluster), [opis bring-up](https://www.coreweave.com/blog/what-it-takes-to-bring-up-a-multi-rack-nvidia-vera-rubin-nvl72-cluster)
-
-#### AEMA: elastyczność poboru mocy jako element capacity planningu AI
-
-Emerald AI, Google i NVIDIA uruchomiły 16 września AI Energy Management Alliance, której celem jest dynamiczne ograniczanie poboru mocy data center zależnie od stanu sieci energetycznej. Mechanizm może skrócić drogę do przyłączenia, jeśli operator potrafi udowodnić kontrolowalny load shedding bez naruszania SLO workloadów.
-
-**Znaczenie architektoniczne:** Scheduler GPU i power-management muszą zostać powiązane z kontraktem energetycznym. Capacity nie może być już modelowane wyłącznie jako stałe MW: potrzebne są klasy workloadów interruptible/non-interruptible, budżety redukcji mocy, checkpointing oraz testy powrotu po power cap; failure mode to jednoczesny grid event i workload bez bezpiecznego punktu preemption.
-
-**Źródło:** [NVIDIA, 16.09.2026](https://blogs.nvidia.com/blog/ai-energy-management-alliance/)
+**Źródło:** [Google Cloud, 15.09.2026](https://cloud.google.com/blog/products/containers-kubernetes/agent-substrate-available-on-gke)
 
 ### Implikacje praktyczne
 
-1. W projektach wielorackowych Rubin testować goodput i degradację całej domeny, nie tylko link-up oraz benchmark pojedynczego racka.
-2. Wprowadzić power-flexibility do schedulera jako jawny constraint obok GPU, pamięci, sieci i locality danych.
-3. Przy outsourcingu całego model lifecycle wymagać technicznego exit planu: checkpoint portability, egress, obrazy runtime i alternatywny serving.
-4. Telemetrię sieci, chłodzenia i zasilania korelować z job ID; inaczej przy wielorackowej skali źródło stragglera będzie trudne do izolacji.
+1. Dla agent platforms mierzyć osobno inference latency i sandbox activation latency; standardowy Pod-per-turn nie skaluje się ekonomicznie do masowych, głównie idle agentów.
+2. Credential injection przenieść poza filesystem/ENV widoczny dla agenta i wymuszać egress policy na gatewayu.
+3. Capacity plan obejmować IOPS i przepustowość snapshot store oraz storm resume po awarii workerów, nie tylko CPU/RAM/GPU.
+4. Przy wyborze runtime porównać microVM vs gVisor pod kątem kompatybilności syscalli, density i blast radiusu.
 
 ### Trend tygodnia
 
-AI factory jest optymalizowana jako jeden system obejmujący GPU, scale-up/scale-out fabric, storage i energię. Kolejnym ograniczeniem capacity przestaje być wyłącznie dostępność akceleratorów: scheduler musi reagować również na stan sieci energetycznej i termikę. Jednocześnie dostawcy chmur przejmują coraz większą część lifecycle modeli, co upraszcza operacje kosztem większego blast radiusu i lock-inu.
+Warstwa wykonawcza agentów zaczyna być osobnym typem infrastruktury, a nie wariantem klasycznego stateless Kubernetes. Kluczowe stają się szybkie suspend/resume, aktywne-only compute, izolacja kernela i kontrolowany egress. To przesuwa optymalizację z liczby podów na koszt aktywnego czasu oraz przepustowość lifecycle sandboxów.
 
 ### To obserwować
 
-- realny NCCL goodput wielorackowych Rubin NVL72 przy awarii linku/rail;
-- Spectrum-6 + ConnectX-9 telemetry i mechanizmy congestion control w produkcji;
-- wymagane czasy i głębokość redukcji mocy dla kontraktów flexible-load;
-- portability checkpointów i koszt egress w usługach managed training + inference;
-- korelację power cap z token/s i czasem checkpoint/restart.
+- GA i ograniczenia produkcyjne Agent Substrate poza GKE;
+- realny p95/p99 resume przy stormie i cold storage;
+- IOPS/GCS cost per 1M agent-turns;
+- gVisor vs microVM density i syscall compatibility;
+- awarie credential-injection/egress gateway jako wspólnego control point.
+
+## euro neocloud
+
+### Nebius
+
+#### Druga podwyżka cen GPU on-demand w trzy miesiące
+
+Nebius potwierdził 17 września podwyżki pay-as-you-go od 1 października: wybrane GPU NVIDIA drożeją o 17–21%, CPU-only do 25%, a memory offerings około 41%. B300 ma kosztować około 9,50 USD/GPU-h; źródła rynkowe wskazują około 56% wzrostu tej stawki w mniej niż pół roku. Duże wielomiesięczne klastry nadal mogą otrzymywać commitment discounts.
+
+**Ocena analityczna:** Sygnał ostrzegawczy nie dotyczy płynności operatora, lecz dostępności capacity i przewidywalności kosztu spot/on-demand. **Ocena ryzyka: Średnie** — dla kontraktów committed ryzyko jest niższe, ale workloady burstowe i DR oparte na on-demand wymagają ponownego modelowania TCO i limitów budżetowych; kolejna podwyżka zwiększa wartość multi-provider portability.
+
+**Źródła:** [Reuters, 17.09.2026](https://www.aol.com/articles/nebius-hikes-ai-cloud-prices-161227000.html), [Nebius pricing coverage](https://www.thenew.money/article/nebius-is-raising-on-demand-gpu-prices)
 
 ## Newsletters summary
 
-### Cursor CLI: sandbox nie obejmował wewnętrznych wywołań Git
+### Marimo: osiem sekund od RCE do bastionu
 
-- **Technologia / Zdarzenie:** [Beltdown2 — Cursor CLI sandbox escape](https://dennysentinel.com/blog/2026-09-13-cursor-cli-sandbox-beltdown2/)
-- **Mechanizm działania:** Repozytorium mogło ustawić `core.fsmonitor` w `.git/config`; wewnętrzny `git` uruchamiany przez harness Cursor CLI działał poza sandboxem i wykonywał hook nawet przy read-only prompt.
-- **Wpływ na architekturę:** Izolacja agentów musi obejmować proces nadrzędny/harness i wszystkie helpery, a nie wyłącznie shell udostępniony modelowi. Untrusted repository należy traktować jak aktywny input wykonawczy.
-- **Failure modes i edge cases:** Blocklista pojedynczych komend Git nie zamyka klasy błędów. Trwała kontrola powinna neutralizować repo-controlled config na granicy procesu oraz wykonywać cały agent harness w VM/container boundary.
+- **Technologia / Zdarzenie:** [Sysdig — machine-speed exploitation CVE-2026-39987](https://www.sysdig.com/blog/machine-speed-hold-the-ai-hand-rolled-marimo-cve-2026-39987-exploit)
+- **Mechanizm działania:** Pre-auth WebSocket `/terminal/ws` dawał PTY shell; operator pobrał cloud credentials, odczytał SSH key z AWS Secrets Manager i wykonał pivot na bastion w osiem sekund.
+- **Wpływ na architekturę:** Notebook/AI-dev hosts należy traktować jak privileged cloud entry point. Sekrety dostępne z runtime i szeroki east-west reachability redukują czas obrony praktycznie do zera.
+- **Failure modes i edge cases:** Detekcja oparta na fingerprintach narzędzi lub prompt-injection traps nie wystarcza; potrzebne są short-lived credentials, workload identity, egress controls i detekcja sekwencji API→Secrets Manager→SSH.
 
-### Logi Options+: lokalny użytkownik mógł eskalować do SYSTEM
+### Parallels Desktop: lokalny proces do root przez appliance installer
 
-- **Technologia / Zdarzenie:** CVE-2026-12518 w Logi Options+ dla Windows.
-- **Mechanizm działania:** Uprzywilejowany updater ufał kontrolowanym lokalnie parametrom/artefaktom instalacyjnym, umożliwiając standardowemu użytkownikowi uruchomienie kodu jako SYSTEM.
-- **Wpływ na architekturę:** Oprogramowanie peryferyjne na stacjach administracyjnych należy traktować jak element privileged attack surface. Aktualizacja powinna być wymuszona centralnie; dla bastionów sensowne jest usunięcie zbędnych updaterów i narzędzi użytkowych.
-- **Failure modes i edge cases:** Sam EDR nie usuwa ścieżki eskalacji, a użytkownik z prawem instalowania narzędzi peryferyjnych może odtworzyć podatny komponent. Wymagane są inventory wersji oraz application control.
+- **Technologia / Zdarzenie:** [JFrog — CVE-2026-90894](https://jfrog.com/blog/parallels-desktop-turns-appliance-install-into-root-shell/)
+- **Mechanizm działania:** `prl_disp_service` działa jako root i udostępnia world-writable socket; słabe uwierzytelnienie klienta plus argument injection do `tar --use-compress-program` pozwala uruchomić kod jako root.
+- **Wpływ na architekturę:** Mac workstation używany do administracji/CI powinien mieć Parallels >=27.0.1 i ograniczony lokalny software supply chain; hypervisor desktopowy jest częścią privileged attack surface.
+- **Failure modes i edge cases:** EDR nie usuwa podatnego trust boundary; kompromitowany package lub job CI działający jako zwykły user może eskalować bez interakcji administratora.
+
+### Workspace MCP: third-party connectors jako domyślny kanał danych
+
+- **Technologia / Zdarzenie:** Gemini w Workspace otrzymuje MCP integrations z Salesforce, HubSpot, Asana, Monday, QuickBooks, Mailchimp i Atlassian Rovo; według newslettera third-party connectors są domyślnie włączone dla użytkowników z dostępem Gemini.
+- **Mechanizm działania:** Agent uzyskuje tool access do zewnętrznych SaaS bezpośrednio z Gmail/Docs/Drive/Sheets/Chat; kontrola administracyjna może być stosowana per domain/OU/group.
+- **Wpływ na architekturę:** MCP staje się nową warstwą egress/data-access policy. Inventory connectorów, scopes, OAuth grants i audyt tool calls powinny wejść do standardowego IAM/DLP governance.
+- **Failure modes i edge cases:** Default-on zwiększa ryzyko shadow integrations, excessive scopes i cross-SaaS data propagation; prompt injection w dokumencie/mailu może wywołać narzędzie mające szersze uprawnienia niż sam kontekst użytkownika.
