@@ -1,97 +1,94 @@
-# Newsy — 2026-09-22
+# Newsy — 2026-09-23
 
-**Data podsumowania:** 2026-09-22  
-**Okno przyrostowe:** od raportu 2026-09-21 07:30 CEST do 2026-09-22 07:30 CEST; dla pominiętych wcześniej zdarzeń maks. 7 dni.
+**Data podsumowania:** 2026-09-23  
+**Okno przyrostowe:** od raportu 2026-09-22 07:30 CEST do 2026-09-23 07:30 CEST; dla pominiętych wcześniej zdarzeń maks. 7 dni.
 
 ## Raport technologiczny
 
 ### Technologia
 
-#### Cloudflare: >100 TB RAM odzyskane przez zmianę modelu consistent hashing
+#### VMware wycofuje distributed firewall z offloadu SmartNIC
 
-Cloudflare opisał optymalizację implementacji consistent hashing w usłudze opartej o Pingora/Rust. Redukcja liczby reprezentacji serwerów w strukturach routingu i zastąpienie kosztownego modelu mapowania bardziej zwartą konstrukcją dało ponad 100 TB oszczędności RAM w skali globalnego fleet.
+VMware/Broadcom przestał sprzedawać wariant Distributed Firewall działający na SmartNIC; Distributed Services Engine pozostaje elementem VCF. Powodem była niska adopcja oraz koszt integracji/microcode dla heterogenicznych DPU/NIC, przy jednoczesnym wzroście możliwości klasycznych NIC.
 
-**Znaczenie:** przy hyperscale koszt algorytmiczny struktur sterujących staje się kosztem infrastruktury. Własne systemy LB/proxy warto profilować nie tylko CPU/request, lecz również bytes/backend i bytes/route; failure mode to pogorszenie równomierności rozkładu lub większy churn przy zmianach membership, więc oszczędność pamięci musi być weryfikowana razem z remap ratio i tail latency.
+**Znaczenie:** dla private cloud DPU nie powinno być traktowane jako domyślna warstwa enforcementu bez potwierdzonego lifecycle konkretnego vendor+NIC. Failure mode to zależność polityk bezpieczeństwa od funkcji sprzętowej, którą producent może zdeprecjonować szybciej niż cykl życia klastra; projektować fallback do software dataplane i mierzyć CPU tax.
 
-**Źródło:** https://blog.cloudflare.com/saving-100-tb-of-ram-with-math/
+**Źródło:** https://www.theregister.com/virtualization/2026/09/21/vmware-has-quietly-walked-back-its-smartnic-ambitions/5297654
 
 ## Raport AI-ML
 
 ### Biznes
 
-#### Nscale ujawnia skalę ryzyka finansowania podczas IPO
+#### Accelevation wycenia IPO do 5,37 mld USD
 
-Brytyjski Nscale złożył dokumentację do wejścia na NYSE. Za H1 2026 wykazał 140,6 mln USD przychodu i 1,02 mld USD straty netto; równocześnie deklaruje ponad 100 mld USD zakontraktowanej wartości i wielogigawatowy pipeline, podczas gdy aktywna/leased capacity jest nadal niewielka względem planów.
+Dostawca infrastruktury zasilania, chłodzenia i modułowych systemów DC chce pozyskać do 720 mln USD przy wycenie do 5,37 mld USD. To kolejny sygnał, że kapitał AI przesuwa się z samych acceleratorów w stronę fizycznego supply chain power/cooling.
 
-**Znaczenie architektoniczne:** kontrakty na GPU nie są równoważne dostępnej mocy obliczeniowej — execution risk leży w power, finansowaniu, budowie DC i terminowej dostawie acceleratorów. Przy wyborze neocloudu trzeba oddzielać contracted backlog od commissioned MW/GPU i wymagać SLA powiązanego z konkretnym site/cluster.
+**Znaczenie architektoniczne:** capacity planning trzeba rozszerzyć o dostępność CDU, switchgear, busway i prefabrykowanych modułów; GPU delivery bez równoległego facility BOM nie oznacza time-to-service. Wąskie gardła infrastruktury elektrycznej i cieplnej mogą determinować harmonogram bardziej niż lead time serwerów.
 
-**Źródła:** https://www.investing.com/news/stock-market-news/nscale-files-for-ipo-seeks-nyse-listing-under-ticker-nscl-432SI-4907816 ; https://www.ft.com/content/93ba41c5-d777-4733-8738-93a06e8fead1
+**Źródło:** https://www.reuters.com/technology/accelevation-backers-aim-raise-720-million-us-ipo-2026-09-22/
 
 ### Technologia
 
-#### SemiAnalysis: inference trzeba modelować jako przepływ prefill → midfill → decode
+#### NVIDIA DSX Ready formalizuje kwalifikację BESS i CDU
 
-Nowa analiza SemiAnalysis rozdziela inference na prefill, midfill, decode-attention i decode-experts. Kluczowy element to KV state jako przenośne, immutable blobs w warstwie współdzielonej pamięci/storage, co pozwala schedulerowi dobierać worker do fazy i SLO zamiast utrzymywać session affinity do konkretnego GPU.
+NVIDIA uruchomiła DSX Ready: program kwalifikacji komponentów infrastruktury AI factory względem wymagań DSX. Pierwsze kategorie to BESS oraz CDU; kwalifikowane są m.in. rozwiązania Hitachi Energy, LG Energy Solution, Tesla, LG Electronics, LiquidStack i Vertiv. NVIDIA wyraźnie zaznacza, że kwalifikacja komponentu nie zastępuje site-level engineering ani nie gwarantuje stabilności całego obiektu.
 
-**Znaczenie architektoniczne:** dla agentic workloads midfill staje się osobnym profilem capacity — długi istniejący KV cache plus relatywnie mały przyrost wejścia. Disaggregated serving może zwiększyć utilization, ale przenosi bottleneck na KV transport, shared DRAM/SSD, fabric i scheduler; p99 zależy wtedy od locality, cache admission i przepustowości sieci równie mocno jak od FLOPS GPU.
+**Znaczenie architektoniczne:** power i cooling stają się częścią referencyjnej architektury accelerator platform, co może skrócić integrację, ale zwiększa ecosystem coupling. W procurement należy rozdzielać „qualified component” od walidacji hydraulic loop, transient response, redundancy, controls integration i site fault domains.
 
-**Źródło:** https://newsletter.semianalysis.com/p/computation-and-data-movement-for
+**Źródło:** https://blogs.nvidia.com/blog/dsx-ready-ai-factories-power-cooling/
+
+#### Ekonomia 1 GW: koszt kapitału dominuje nad energią
+
+Analiza z newslettera The Gigawatt Economy, oparta m.in. na modelu Epoch AI, przyjmuje dla hipotetycznego 1 GW IT opartego o GB200 NVL72 około 38 mld USD CAPEX: ok. 21,2 mld USD serwery, 4,9 mld USD networking i 11,8 mld USD facility/land/utility works. Roczny ownership cost modelowany jest na ok. 8,5 mld USD, podczas gdy energia to ok. 0,6 mld USD; najtrudniejszy do pozyskania zasób nie musi więc być największą pozycją TCO.
+
+**Znaczenie architektoniczne:** podstawową metryką ekonomiczną staje się produktywne wykorzystanie drogiego IT w ramach dostępnego MW. Oversizing power bez wysokiego GPU utilization nie poprawia ekonomiki; z kolei opóźnione przyłącze zamraża kapitał w sprzęcie o krótkim cyklu amortyzacji.
+
+**Źródło:** newsletter The Business Engineer / The AI Supercycle, 2026-09-23; model bazowy: https://epoch.ai/
 
 ### Implikacje praktyczne
 
-1. Capacity planning inference rozdzielać co najmniej na prefill, midfill i decode; jedna średnia tokens/s ukrywa różne bottlenecki.
-2. Projektować KV cache jako współdzielony resource domain z telemetryką hit-rate, bytes/request, p99 fetch i kosztu migracji między workerami.
-3. Przy kontraktach neocloud wymagać danych commissioned MW/GPU per site, a nie opierać sizingu na backlogu lub planowanej mocy.
-4. Przy disaggregated serving testować awarie storage/fabric: utrata KV tier może degradować cały inference mimo zdrowych GPU.
+1. Do BOM AI factory włączyć kwalifikowane CDU/BESS, ale utrzymać niezależny site acceptance test dla transientów, hydrauliki, sterowania i failover.
+2. Capacity plan prowadzić równolegle w GPU, MW-IT, MW-facility, rack density oraz CDU/switchgear lead time; żadna pojedyncza wartość MW nie opisuje realnej capacity.
+3. W modelu TCO śledzić GPU utilization i time-to-service jako ryzyko kapitałowe; koszt energii może być wtórny wobec amortyzacji acceleratorów.
+4. Przy wielogigawatowych projektach oddzielać operating, under-construction, power-secured i announced capacity.
 
 ### Trend tygodnia
 
-Inference przesuwa się z modelu „GPU server” do wielowarstwowej fabryki tokenów. Scheduler, KV cache, DRAM/SSD i fabric zaczynają determinować utilization oraz p99 równie silnie jak sam accelerator. Jednocześnie szybka ekspansja neocloudów zwiększa różnicę między zakontraktowaną a fizycznie uruchomioną capacity.
+AI infrastructure przechodzi z optymalizacji serwera do optymalizacji całej fabryki: accelerator, fabric, KV/storage, zasilanie i chłodzenie są jednym systemem capacity. NVIDIA rozszerza własny reference envelope na BESS/CDU, a rynek kapitałowy wycenia firmy dostarczające fizyczne elementy power/cooling. Jednocześnie koszt niewykorzystanego accelerator CAPEX rośnie szybciej niż znaczenie samej ceny kWh.
 
 ### To obserwować
 
-- p95/p99 midfill oraz KV-cache transfer bandwidth;
-- commissioned vs contracted MW u europejskich neocloudów;
-- koszt storage/DRAM na aktywną sesję agentic;
-- disaggregated prefill/decode w Dynamo, Mooncake, vLLM i SGLang;
-- realny time-to-service nowych klastrów B200/B300/Rubin.
+- DSX Ready: kolejne kategorie poza BESS/CDU;
+- commissioned MW-IT vs announced MW u hyperscalerów i neocloudów;
+- lead time CDU, switchgear, transformerów i BESS;
+- GPU utilization / tokens-per-MW zamiast samego installed GPU count;
+- time-to-power względem czasu amortyzacji B200/B300/Rubin.
 
-## euro neocloud
+## AI for networking
 
-### Nscale — IPO ujawnia wysoką kapitałochłonność i concentration/execution risk
+### Fastly: runtime control i firewall dla ruchu AI/agentów
 
-**Fakty:** Nscale podał 140,6 mln USD przychodu i 1,02 mld USD straty netto w H1 2026. Spółka rozwija około 1,3 GW projektów i deklaruje ponad 100 mld USD wartości kontraktów, ale obecna uruchomiona/leased capacity pozostaje niewielka względem pipeline.
-
-**Ocena analityczna:** sygnały ostrzegawcze to duża luka między contracted value a rozpoznanym przychodem, szybkie zużycie kapitału, zależność od finansowania kolejnych DC oraz koncentracja dużych umów na kilku odbiorcach. **Ocena ryzyka: Wysokie** — nie z powodu popytu na GPU, lecz execution/financing risk pomiędzy kontraktem a commissioned capacity.
-
-**Źródła:** https://www.investing.com/news/stock-market-news/nscale-files-for-ipo-seeks-nyse-listing-under-ticker-nscl-432SI-4907816 ; https://www.ft.com/content/93ba41c5-d777-4733-8738-93a06e8fead1
+- **Technologia / Zdarzenie:** Fastly AI Runtime Control i AI Firewall — https://investors.fastly.com/news-releases/news-release-details/fastly-launches-ai-firewall-and-ai-runtime-control-secure-and
+- **Mechanizm działania:** enforcement jest przenoszony do edge/data plane: polityki mogą kontrolować dostęp do modeli, usage/cost oraz interakcje agentów z enterprise API, łącząc routing i security controls w jednej warstwie.
+- **Wpływ na architekturę:** AI gateway staje się policy enforcement point podobnym do API gateway/SASE; pozwala centralizować model routing i governance bez implementacji kontroli w każdej aplikacji.
+- **Failure modes i edge cases:** centralizacja tworzy shared failure domain i dodatkowy hop w krytycznej ścieżce inference. Należy testować fail-open/fail-closed, timeout budgets, streaming, tool-call chains, policy cache consistency oraz zachowanie przy awarii control plane.
 
 ## Newsletters summary
 
-### SemiAnalysis: KV state jako współdzielony obiekt infrastrukturalny
+### Docker Sandboxes: virtio-fs i socket relay naruszały granicę workspace
 
-- **Technologia / Zdarzenie:** „Computation and Data Movement for Inference”.
-- **Mechanizm działania:** prefill/midfill/decode są rozdzielane na worker pools, a KV state jest przenoszony jako immutable blobs przez shared DRAM/storage.
-- **Wpływ na architekturę:** placement może być oparty o aktualną fazę i SLO zamiast session affinity; fabric i storage stają się elementem krytycznej ścieżki inference.
-- **Failure modes i edge cases:** KV miss, przeciążenie shared tier, hotspoty, długi context i koszt migracji mogą zwiększać p99 mimo wolnych GPU.
+- **Technologia / Zdarzenie:** CVE-2026-77179 i CVE-2026-79994, poprawione w Docker Sandboxes 0.42.0+.
+- **Mechanizm działania:** guest mógł wykorzystać zmianę ścieżki/symlink pomiędzy walidacją a użyciem; na macOS virtio-fs pozwalał wyjść poza workspace, a analogiczny TOCTOU w relay mógł przekierować hosta do nieautoryzowanego AF_UNIX socket.
+- **Wpływ na architekturę:** VM boundary nie wystarcza, jeżeli host-side file/socket broker interpretuje mutowalne pathname. Autoryzacja powinna wiązać się z uchwytem/obiektem, a nie ponownie rozwiązywaną ścieżką.
+- **Failure modes i edge cases:** hostile repo lub przejęty coding agent może przejść z workspace do host credentials/code execution. Minimalizować RW mounts, stosować clone mode i aktualizować do >=0.42.0.
 
-### Codex: Heapjack/Overpatch pokazują błędną granicę sandboxu
+**Źródło:** https://thehackernews.com/2026/09/critical-docker-sandboxes-flaw-lets.html
 
-- **Technologia / Zdarzenie:** ujawniono dwa naprawione sandbox escapes Codex; jeden działał również w trybie read-only.
-- **Mechanizm działania:** Heapjack odzyskiwał trust token ze współdzielonego V8 heap, a Overpatch wykorzystywał logikę uprawnień apply_patch do zapisu poza workspace.
-- **Wpływ na architekturę:** coding agent powinien działać w izolacji egzekwowanej poza procesem/agentycznym runtime — VM/microVM, osobny egress proxy, brak host credentials i krótkotrwałe workload identities.
-- **Failure modes i edge cases:** repo jako hostile input, token leakage, symlink/path traversal i persistent host modification. Minimalne wskazane wersje poprawek: Codex CLI 0.149.0 i Desktop 26.818.21641.
+### VMware SmartNIC: hardware offload bez adopcji nie utrzymał lifecycle
 
-### Plugin4Shell: SHA pinning nieskuteczne, jeśli agent sam rozwiązuje repo
+- **Technologia / Zdarzenie:** VMware wycofał sprzedaż distributed firewall dla SmartNIC.
+- **Mechanizm działania:** funkcje DFW były offloadowane do DPU/SmartNIC, wymagając ścisłej integracji microcode z konkretnymi platformami sprzętowymi.
+- **Wpływ na architekturę:** enterprise private cloud nie skopiował automatycznie hyperscale DPU modelu; hardware offload wymaga wystarczającej skali, stabilnego ecosystemu i wyraźnego CPU/TCO gain.
+- **Failure modes i edge cases:** vendor deprecation, nierówna obsługa kart, upgrade coupling firmware-hypervisor-security policy oraz brak równoważnego fallbacku.
 
-- **Technologia / Zdarzenie:** Plugin4Shell dotyczy Claude Code, Codex, GitHub Copilot i Gemini CLI; repozytorium kontrolowane przez atakującego może podmienić kod mimo zatwierdzonego SHA.
-- **Mechanizm działania:** walidacja pinning i pobranie pluginu nie tworzyły jednej zewnętrznie egzekwowanej granicy zaufania; zmiana default branch pozwalała agentowi pobrać inny kod niż oczekiwany.
-- **Wpływ na architekturę:** plugin marketplace nie może być root of trust, jeśli runtime sam interpretuje referencję. Potrzebny immutable artifact digest, registry/proxy kontrolowany poza agentem oraz allowlista egress.
-- **Failure modes i edge cases:** auto-update pluginów i przejęcie upstream repo zamieniają supply-chain compromise w zero-click execution. Według AIR poprawki są w Claude Code 2.1.179 i Codex 0.146.0; dla wskazanych wersji Copilot/Gemini CLI pełnej poprawki nie było w momencie publikacji.
-
-### TLDR AI: AX — agent workload jako izolowany workload klastra
-
-- **Technologia / Zdarzenie:** Google AX deklaruje uruchamianie bardzo dużej liczby autonomicznych zadań agentowych nad Agent Substrate.
-- **Mechanizm działania:** task deklaruje workspace i gateway; runtime sandboxuje wykonanie, podłącza workspace i ogranicza sieć.
-- **Wpływ na architekturę:** agent orchestration zaczyna przypominać Kubernetes, ale jednostką schedulingu jest długotrwały, stanowy i sieciowo aktywny agent; potrzebne quota, workload identity, egress policy i per-task audit.
-- **Failure modes i edge cases:** agent retry storms, niekontrolowany fan-out, kosztowne tool loops, credential propagation i przeciążenie gateway/control plane.
+**Źródło:** https://www.theregister.com/virtualization/2026/09/21/vmware-has-quietly-walked-back-its-smartnic-ambitions/5297654
