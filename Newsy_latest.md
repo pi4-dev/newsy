@@ -1,66 +1,100 @@
-# Newsy — 2026-09-24
+# Newsy — 2026-09-25
 
-**Data podsumowania:** 2026-09-24  
-**Okno przyrostowe:** od raportu 2026-09-23 07:30 CEST do 2026-09-24 07:30 CEST; dla pominiętych wcześniej zdarzeń maks. 7 dni.
+**Data podsumowania:** 2026-09-25  
+**Okno przyrostowe:** od raportu 2026-09-24 07:30 CEST do 2026-09-25 07:30 CEST; dla pominiętych wcześniej zdarzeń maks. 7 dni.
 
 ## Raport technologiczny
 
 ### Technologia
 
-#### Management plane pozostaje głównym celem ataków na infrastrukturę
+#### GitHub App private keys: trwałe machine identities tworzą supply-chain blast radius
 
-Eclypsium InfraTrust za okres 25.08–17.09 zebrał 158 nowych advisories u 17 vendorów, obejmujących 1699 CVE; 42 advisories były critical, 71 umożliwiało zdalny atak bez uwierzytelnienia, a pięć trafiło do CISA KEV. Materialny wzorzec to koncentracja podatności w systemach zarządzających — FMC/ISE, Fabric Composer, SD-WAN Orchestrator, UFM, SmartFabric Manager czy NSM — czyli komponentach posiadających credentiale i ścieżkę zmian do całej infrastruktury.
+GitGuardian przetestował 4 802 ujawnione klucze prywatne GitHub Apps i stwierdził, że 474 nadal poprawnie uwierzytelniają się do GitHub API jako 440 aplikacji. 207 aplikacji miało write do zawartości repozytoriów, 44 uprawnienia administracyjne organizacji, 40 zarządzanie self-hosted runners, a 98 kontrolę workflow; klucze prywatne GitHub Apps nie wygasają automatycznie.
 
-**Znaczenie:** management plane trzeba traktować jak Tier-0: osobna strefa/OOB, allowlist management sources, MFA/PAM, brak ekspozycji Internet, telemetry/audit poza zarządzanym systemem i możliwość szybkiego odtworzenia. Kompromitacja kontrolera ma blast radius większy niż pojedynczego switcha/firewalla; patch SLA dla management plane powinno być krótsze niż dla dataplane.
+**Znaczenie:** GitHub App private key należy traktować jak długowieczną tożsamość maszynową Tier-0. Leak może umożliwić modyfikację kodu, workflow i runnerów w wielu repozytoriach, więc samo usunięcie sekretu z historii Git nie wystarcza — wymagane są rotacja/revocation, przegląd instalacji, ograniczenie permissions/repository scope oraz audyt zmian wykonanych przez aplikację.
 
-**Źródło:** https://www.bleepingcomputer.com/news/security/infratrust-report-warns-network-management-systems-under-attack/
+**Źródło:** https://blog.gitguardian.com/github-app-private-keys-leaked/
 
 ## Raport AI-ML
 
 ### Technologia
 
-#### ClusterMAX 3.0 przesuwa baseline GPU cloud na Blackwell/MI355X i 800G/XDR
+#### NVIDIA NodeWright przenosi lifecycle host OS GPU nodes do modelu deklaratywnego
 
-SemiAnalysis rozszerzył ClusterMAX z 209 do 323 obserwowanych GPU cloudów, z 77 dostawcami objętymi pogłębioną oceną. Test referencyjny wymaga 32 GPU, preferuje B200/B300/GB200/GB300 lub MI355X, 800G RoCE/XDR InfiniBand, co najmniej 10 TB wydajnego POSIX/RWX storage i 10 TB S3; osobno testowane są audit/configuration, microbenchmarks, workload performance, lifecycle, reliability i fault tolerance.
+NodeWright to otwartoźródłowy, Kubernetes-native mechanizm zarządzania konfiguracją hosta pod GPU workloads. Operator wykonuje sekwencję cordon → wait → drain → apply/configure → interrupt/reboot → uncordon, respektuje PodDisruptionBudgets i non-interruptible workloads, a DeploymentPolicy umożliwia rollout fixed/linear/exponential z progami sukcesu i awarii.
 
-**Znaczenie architektoniczne:** procurement GPU cloud powinien przejść z „GPU SKU + cena/h” na powtarzalny acceptance test całego klastra. Dla 32+ GPU bottleneckiem może być fabric/storage/scheduler, a nie accelerator; wymagane są testy goodput, collective tail latency, storage contention, node replacement i recovery pod Slurm/K8s. Vendor deklarujący Blackwell bez 800G/XDR i operacyjnego fault-domain modelu nie jest równoważny produkcyjnemu AI cluster.
+**Znaczenie architektoniczne:** host OS, kernel, RDMA tuning i security agents stają się elementem kontrolowanego lifecycle klastra zamiast zewnętrznego runbooka. Przy setkach/tysiącach GPU ogranicza to konfigurację drift i manual maintenance, ale błędna paczka lub zbyt agresywny rollout może skorelować awarie w dużym failure domain; potrzebne są canary compartments, twarde disruption budgets i rollback/validation poza samym workload schedulerem.
 
-**Źródło:** https://newsletter.semianalysis.com/p/clustermax-30-the-industry-standard
+**Źródło:** https://developer.nvidia.com/blog/manage-kubernetes-node-fleets-with-nodewright/
+
+#### Mitsubishi Electric Chip-to-Grid łączy power, BESS i cooling z projektem Vera Rubin
+
+Mitsubishi Electric opublikował NVIDIA-compatible Chip-to-Grid DSX Reference Designs dla Vera Rubin NVL72 i kolejnych platform. Projekt obejmuje ścieżkę od grid connection do zasilania chipów, BESS/on-site generation z możliwością pracy wyspowej, dystrybucję 415/480 VAC lub 800 VDC oraz dual-loop cooling dla wysokich gęstości racków; celem jest skalowanie do obiektów klasy gigawatowej.
+
+**Znaczenie architektoniczne:** boundary AI factory przesuwa się poza compute/network do power electronics, microgrid i hydrauliki. Capacity planning powinien modelować wspólnie transient response, BESS autonomy, 800 VDC protection, CDU/cooling fault domains i ramp GPU load; największym failure mode jest traktowanie reference design jako substytutu site-level protection coordination, commissioning i black-start/islanding tests.
+
+**Źródło:** https://europe.mitsubishielectric.com/en/pr/global/2026/0924_pu/
 
 ### Implikacje praktyczne
 
-1. W RFP dla GPU cloud dodać własny pre-production acceptance suite: NCCL/RCCL, storage RWX/POSIX, failure injection, node replacement i scheduler recovery.
-2. Traktować 800G RoCE/XDR jako nowy punkt odniesienia dla dużych Blackwell/MI355X deploymentów, ale mierzyć application goodput zamiast nominalnego bandwidth.
-3. Wymagać firmware/software inventory oraz spójności wersji jako części odbioru; heterogeniczne firmware jest częstym źródłem tail latency i niestabilności collectives.
-4. Oddzielać dostępność GPU od dostępności kompletnego klastra: accelerator inventory bez fabric/storage/operations nie jest realną capacity.
+1. Zarządzanie host OS dla dużych GPU Kubernetes clusters przenieść do polityk rollout/canary z kontrolą failure domain, a nie utrzymywać wyłącznie jako Ansible/runbook.
+2. Kernel/RDMA/driver changes wiązać z workload-aware drain i walidacją post-change; automatyzacja bez ograniczenia blast radius tylko przyspiesza propagację błędu.
+3. Dla Rubin-era AI factory prowadzić capacity plan wspólnie dla GPU, rack density, 800 VDC/AC distribution, BESS, cooling i grid constraints.
+4. W acceptance testach power/cooling uwzględniać transienty GPU, utratę grid, islanding, restart po awarii oraz skorelowane failure modes power+cooling.
 
 ### Trend tygodnia
 
-Rynek GPU cloud dojrzewa z prostego wynajmu acceleratorów do oceny całego systemu. Baseline przesuwa się z H100 na Blackwell/MI355X oraz z 400G w stronę 800G/XDR. Coraz większa część różnicy między dostawcami wynika z operacji, niezawodności, security, storage i network goodput, a nie z samego GPU SKU.
+Warstwa operacyjna AI factory przesuwa się z zarządzania pojedynczym serwerem do lifecycle całego systemu: host OS, scheduler, fabric, power i cooling są jednym failure domain. NodeWright pokazuje tę zmianę po stronie software fleet management, a Chip-to-Grid po stronie fizycznej infrastruktury. Kluczową metryką staje się nie samo installed GPU count, lecz zdolność bezpiecznego utrzymania i aktualizacji całej fabryki bez utraty produktywnej capacity.
 
 ### To obserwować
 
-- 800G RoCE vs XDR InfiniBand: application goodput i p99 collective latency;
-- czas naprawy/reprovisioningu uszkodzonego node'a w Slurm/K8s;
-- liczba dostawców z produkcyjnym B300/GB300/MI355X;
-- security isolation management plane i tenant fabric;
-- realna dostępność RWX/POSIX storage przy równoległym treningu.
+- NodeWright/AICR: obsługa rollbacku, dependency ordering i realne failure thresholds na dużych klastrach;
+- wpływ kernel/RDMA updates na NCCL p99 i job restart rate;
+- 800 VDC: ochrona, serwisowalność i vendor interoperability;
+- BESS/islanding: czas przejścia i zachowanie przy skokach obciążenia GPU;
+- Rubin NVL72: realna rack density i wymagania CDU/site power.
 
-## euro neocloud
+## AI for networking
 
-### Nebius — wejście do najwyższej klasy ClusterMAX
+### Bifrost AI Gateway: unauthenticated MCP registration prowadzi do command execution
 
-**Fakty:** ClusterMAX 3.0 wskazuje materialną poprawę Nebius w ocenie kompletnego GPU cloudu; test obejmuje nie tylko GPU, ale networking, storage, orchestration, monitoring, reliability i security. Jest to istotniejsze niż sama deklarowana liczba GPU, ponieważ metodologia używa rzeczywistych 32-GPU klastrów i testów Slurm/K8s.
+- **Technologia / Zdarzenie:** CVE-2026-90898 w Bifrost AI Gateway — https://thehackernews.com/2026/09/critical-bifrost-ai-gateway-flaw-lets.html
+- **Mechanizm działania:** przy domyślnie wyłączonym management authentication pojedynczy POST do `/api/mcp/client` może zarejestrować klienta MCP typu stdio; gateway uruchamia wskazany proces przed handshake MCP. Podatne są transporty HTTP <2.1.0, a oficjalny obraz Docker może wystawić management API na 0.0.0.0.
+- **Wpływ na architekturę:** AI gateway jest jednocześnie policy point i koncentratorem provider credentials, więc powinien być traktowany jak management plane/Tier-0. Oddzielić listener management od dataplane, wymusić auth, ograniczyć egress i nie przechowywać szerokich kluczy dostawców w jednym shared process.
+- **Failure modes i edge cases:** RCE daje dostęp do wszystkich provider API keys i może posłużyć do dalszego pivotu. Instancje działające z wystawionym management API i bez auth należy traktować jako potencjalnie przejęte; aktualizacja do transports/v2.1.0 nie zastępuje rotacji kluczy po ekspozycji.
 
-**Ocena analityczna:** sygnał operacyjny jest pozytywny, ale nie eliminuje ryzyka szybkiej rozbudowy capacity i zależności od dostaw Blackwell/power. **Ocena ryzyka: Średnie** — poprawa jakości platformy zmniejsza execution risk, lecz pozostaje ryzyko capacity ramp, CAPEX i koncentracji technologicznej NVIDIA.
+### Perplexity SPACE: microVM boundary wytrzymał, egress policy nie
 
-**Źródła:** https://newsletter.semianalysis.com/p/clustermax-30-the-industry-standard ; https://clustermax.semianalysis.com/
+- **Technologia / Zdarzenie:** Perplexity „Escaping SPACE: Part I” — https://www.perplexity.ai/hub/blog/escaping-space-part-i
+- **Mechanizm działania:** dziewięć modeli z rootem w Firecracker microVM próbowało przekroczyć VM-host boundary lub ominąć per-sandbox egress gateway. W 108 próbach nie uzyskano VM escape, ale przy częściowym dostępie sieciowym cztery modele wykorzystywały DNS spoofing lub shared-IP routing; po poprawkach bypassów nie odtworzono.
+- **Wpływ na architekturę:** hypervisor isolation i network confinement to niezależne trust boundaries. Domain-based allowlist musi wiązać hostname z rzeczywistym połączeniem/TLS destination i nie może ufać wyłącznie DNS resolution ani współdzielonemu IP/CDN.
+- **Failure modes i edge cases:** shared CDN/IP, DNS rebinding/spoofing, package mirrors i proxy exceptions mogą stworzyć alternatywną ścieżkę egress mimo poprawnej izolacji VM. Fallback powinien być fail-closed z telemetryką per sandbox i testami adversarialnymi po każdej zmianie polityk.
 
 ## Newsletters summary
 
-### ClusterMAX 3.0: GPU cloud należy odbierać jak system, nie SKU
+### Bifrost: management API AI gateway jako Tier-0
 
-- **Technologia / Zdarzenie:** SemiAnalysis ClusterMAX 3.0 — https://newsletter.semianalysis.com/p/clustermax-30-the-industry-standard
-- **Mechanizm działania:** audyt klastra poprzedza obciążenie i sprawdza hardware inventory, firmware/software, GPU access, containers, scheduler, networking, storage, monitoring i security; następnie wykonywane są testy wydajności, reliability i fault tolerance.
-- **Wpływ na architekturę:** daje wzorzec acceptance testing dla neocloudu/on-prem AI factory. Pozwala wykryć klastry, które nominalnie mają ten sam GPU SKU, lecz różnią się goodputem, stabilnością collectives, storage i operacyjnością.
-- **Failure modes i edge cases:** krótki benchmark może nie ujawnić sporadycznych fabric faults, thermal throttling, noisy-neighbor ani problemów występujących dopiero przy setkach/tysiącach GPU; własne soak/failure-injection tests nadal są konieczne.
+- **Technologia / Zdarzenie:** CVE-2026-90898, poprawka w transports/v2.1.0.
+- **Mechanizm działania:** unauthenticated rejestracja stdio MCP client uruchamia proces jako użytkownik gateway i odsłania provider API keys.
+- **Wpływ na architekturę:** management listener musi być oddzielony od dataplane, uwierzytelniony i niedostępny z niezaufanych sieci.
+- **Failure modes i edge cases:** publikacja portu oficjalnego kontenera, brak auth i szerokie provider keys zamieniają pojedynczy HTTP request w pełne przejęcie gateway.
+
+**Źródło:** https://thehackernews.com/2026/09/critical-bifrost-ai-gateway-flaw-lets.html
+
+### GitHub Apps: 474 nadal aktywne ujawnione private keys
+
+- **Technologia / Zdarzenie:** GitGuardian zweryfikował aktywność 474 z 4 802 ujawnionych GitHub App private keys.
+- **Mechanizm działania:** klucz podpisuje JWT aplikacji, który następnie pozwala uzyskać installation token z uprawnieniami nadanymi App.
+- **Wpływ na architekturę:** GitHub Apps trzeba objąć inventory, secret scanning, rotacją oraz minimalnym repository/permission scope tak samo jak workload/service identities.
+- **Failure modes i edge cases:** brak automatycznego expiry powoduje, że wieloletni leak nadal może modyfikować repo, workflow lub self-hosted runners.
+
+**Źródło:** https://blog.gitguardian.com/github-app-private-keys-leaked/
+
+### SPACE: egress enforcement jest osobną granicą od microVM
+
+- **Technologia / Zdarzenie:** testy Perplexity SPACE i innych sandboxów agentowych.
+- **Mechanizm działania:** agent nie przełamał Firecracker VM, ale wykorzystywał słabości reguł hostname/DNS/shared-IP do komunikacji z blokowanym celem.
+- **Wpływ na architekturę:** agent sandbox wymaga niezależnego, host-side egress enforcement z poprawnym bindingiem DNS→TLS/connection oraz per-workload audit.
+- **Failure modes i edge cases:** allowlisted CDN, package repo lub współdzielony adres może działać jako covert/alternate egress; po zmianie konfiguracji konieczne są regresyjne testy bypassów.
+
+**Źródło:** https://www.perplexity.ai/hub/blog/escaping-space-part-i
