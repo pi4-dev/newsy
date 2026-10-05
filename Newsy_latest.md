@@ -1,104 +1,83 @@
-# Newsy — 2026-10-02
+# Newsy — 2026-10-05
 
-**Data podsumowania:** 2026-10-02
-**Okno przyrostowe:** od raportu 2026-10-01 do 2026-10-02 07:32 CEST.
+**Data podsumowania:** 2026-10-05  
+**Okno przyrostowe:** od raportu 2026-10-02 do 2026-10-05 08:01 CEST.
 
-## Raport AI-ML
-
-### Biznes
-
-#### Finansowanie GPU: rynek kredytowy dyskontuje długoterminową wartość sprzętu
-
-Reuters podał 1 października, że część banków i inwestorów oczekuje silniejszych gwarancji dla finansowania zabezpieczonego GPU. Typowy underwriting nadal zakłada 3–4-letnią amortyzację, podczas gdy NVIDIA argumentuje znacznie dłuższą ekonomiczną użyteczność sprzętu.
-
-**Znaczenie architektoniczne:** cost of capital staje się częścią TCO klastra równie istotną jak tokens/W. Operatorzy muszą szybciej osiągać utilization i unikać platform o słabym rynku wtórnym; failure mode to refinansowanie przy spadającej wartości GPU i niewystarczającym cash flow.
-
-**Źródło:** https://www.reuters.com/legal/transactional/nvidias-bet-that-its-chips-can-finance-ai-boom-gets-wall-street-reality-check-2026-10-01/
+## Raport technologiczny
 
 ### Technologia
 
-#### GPT-6 Astra Ultrafast: do 8x szybsza generacja na Blackwell
+#### FortiMail CVE-2026-104286: aktywna eksploatacja unauthenticated arbitrary file write
 
-NVIDIA podała, że Astra Ultrafast na Blackwell osiąga do 8x wyższe tempo generacji niż Astra Standard dzięki ciągłej optymalizacji inference. Mechanizm skraca szczególnie pętle agent-tool-result-next action, a nie tylko pojedynczy czas odpowiedzi.
+Fortinet ujawnił CVE-2026-104286 (CVSS 9.8), aktywnie wykorzystywany przeciw FortiMail. Path traversal + NULL-byte handling pozwalają nieuwierzytelnionemu atakującemu zapisywać pliki w systemie przez management HTTP/HTTPS; CISA dodała podatność do KEV.
 
-**Znaczenie architektoniczne:** dla agentic workloads inter-token i tool-loop latency mogą być ważniejsze niż sam batch throughput. Capacity planning powinien rozdzielać profile latency-sensitive i throughput-oriented oraz uwzględniać regresje po zmianach modelu i kernels.
+**Znaczenie:** internet-facing management plane FortiMail należy traktować jako incydent P1: odciąć ekspozycję, zastosować vendor mitigation, przeprowadzić forensic triage i nie zakładać, że późniejsze załatanie usuwa persistence. Failure mode to pozostawienie web management dostępnego z Internetu lub uznanie braku IOC za dowód braku kompromitacji.
 
-**Źródło:** https://blogs.nvidia.com/blog/gpus-openai-gpt-6-astra-ultrafast/
+**Źródła:** https://fortiguard.fortinet.com/psirt/FG-IR-26-175 ; https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2026-104286
 
-### Implikacje praktyczne
+#### Cloudflare scala logs, traces i analytics w jeden observability plane
 
-1. Do TCO GPU włączyć cost-of-capital, depreciation horizon i residual-value sensitivity.
-2. Dla agentic inference mierzyć end-to-end tool-loop latency i p99, nie tylko tok/s/GPU.
-3. Utrzymywać możliwość repurposing GPU między training, inference i RL.
-4. Dla rack-scale platform oceniać rynek wtórny i finansowalność obok benchmarków compute.
+Cloudflare uruchomił wspólny Logs home, request-level Traces w open beta, unified SQL API, custom alerts/dashboards oraz eksport przez Logpush. Tracing obejmuje security rules, transforms, cache, routing, Workers i origin, wspiera W3C trace context oraz eksport OpenTelemetry.
 
-### Trend tygodnia
+**Znaczenie:** korelacja edge→origin może skrócić MTTR przy 5xx/latency i ograniczyć ręczne sklejanie telemetryki z wielu produktów. Ryzyka to koszt/cardinality telemetryki, sampling ukrywający rzadkie p99/p999 zdarzenia oraz vendor lock-in zapytań i retencji; OTel export powinien pozostać ścieżką niezależności.
 
-Wartość infrastruktury AI coraz mniej zależy wyłącznie od FLOPS. Decydują jednocześnie software-defined performance, wykorzystanie energii, zdolność do repurposing oraz finansowalność sprzętu. Rynek kredytowy wymusza bardziej konserwatywne założenia dotyczące życia GPU, podczas gdy software próbuje wydłużać ekonomiczną użyteczność tej samej platformy.
+**Źródło:** https://blog.cloudflare.com/one-observability-platform/
 
-### To obserwować
+#### Cloudflare K2: durable event log na object storage zamiast klasycznego Kafka substrate
 
-- p50/p99 Astra Ultrafast przy agentic tool loops;
-- spread finansowania GPU-backed debt;
-- secondary-market value GB200/GB300 po wejściu Rubin;
-- utilization neocloudów po wzroście cen capacity;
-- udział software optimization w poprawie tokens/W.
+K2 przechowuje partycjonowany ordered log na R2, wykorzystując atomic operations do offsetów bez osobnego coordination service. Compute i storage skalują się niezależnie; batching segmentów redukuje koszt storage, ale pierwsza wersja ma około 1 s p99 produce latency.
 
-## euro neocloud
+**Znaczenie:** wzorzec object-storage-backed log jest atrakcyjny dla telemetryki i wysokiego fan-out, ale nie dla latency-sensitive event processing. Brak message-level retries i wyższa produce latency wymagają rozdzielenia workloadów queue/stream; awaria konsumenta jest tolerowana dzięki długiej retencji.
 
-### Nebius — podwyżki cen weszły w życie 1 października
-
-**Fakty:** od 1 października Nebius podniósł pay-as-you-go dla wybranych GPU NVIDIA o 17–21%, części CPU-only instances o 25%, a wybranych memory offerings o około 41%. To druga podwyżka w ciągu trzech miesięcy; firma nadal oferuje commitment discounts dla dużych, wielomiesięcznych klastrów.
-
-**Ocena analityczna:** pricing power potwierdza niedobór compute, ale zwiększa presję na klientów on-demand i przyspiesza przechodzenie do kontraktów terminowych.
-
-**Ocena ryzyka: Średnie** — brak sygnału problemu płynności lub SLA; ryzykiem jest koszt i dostępność capacity dla klientów bez rezerwacji.
-
-**Źródło:** https://www.reuters.com/technology/nebius-hikes-ai-cloud-prices-again-demand-computing-power-soars-2026-09-17/
+**Źródło:** https://blog.cloudflare.com/cloudflare-k2-streams/
 
 ## AI for networking
 
-### NVIDIA Open Agent Safety: BlueField-4 jako niezależny enforcement plane
+### Clef-flash: mały decision model jako element hot path automatyzacji
 
-NVIDIA Open Agent Safety Platform łączy OpenShell z Sentry działającym na BlueField-4 DPU. Sentry monitoruje zachowanie agenta poza hostem, a DOCA zapewnia identity verification, attested telemetry i zero-trust enforcement dla dostępu do danych, narzędzi i API.
-
-**Wpływ na architekturę:** DPU staje się niezależnym policy plane na ścieżce I/O. W dużych klastrach wymaga to dystrybucji polityk i telemetryki DPU na skalę porównywalną z fabric management.
-
-**Failure modes i edge cases:** błędna policy może odciąć poprawny ruch, a utrata synchronizacji control plane tworzyć niespójne enforcement domains. Potrzebne są staged rollout, rollback i niezależny break-glass path.
-
-**Źródło:** https://nvidianews.nvidia.com/news/open-agent-safety-platform
+- **Technologia / Zdarzenie:** Cloudflare Clef/Clef-flash — https://blog.cloudflare.com/clef-decision-models/
+- **Mechanizm działania:** model zwraca ograniczone structured decisions bez generowania tekstu pośredniego; Clef-flash osiąga w opublikowanych testach medianę 38.8 ms i p95 122.4 ms. Pipeline RL obejmuje AI Gateway dataset, rollouts, sandbox i ponowne wdrożenie modelu.
+- **Wpływ:** decision model może wykonywać klasyfikację/policy selection w hot path taniej i szybciej niż pełny LLM, co jest interesujące dla AIOps i policy automation.
+- **Failure modes:** benchmark producenta nie zastępuje testu domenowego; błędna decyzja jest szybsza, ale nadal błędna. Wymagane confidence thresholds, deterministic fallback, shadow mode i audyt dataset drift.
 
 ### Implikacje praktyczne
 
-1. Traktować DPU policy jako osobny lifecycle domain z canary rollout.
-2. Projektować agent identity tak, aby była weryfikowalna poza hostem.
-3. Oddzielić telemetrykę enforcement od telemetryki agenta.
-4. Zdefiniować fallback po utracie DPU lub policy controller.
+1. Dla AI-driven network automation rozdzielać reasoning LLM od szybkiego, ograniczonego decision plane.
+2. Wymagać shadow-mode i replay testów przed wpuszczeniem modelu do ścieżki zmian sieciowych.
+3. Telemetrię edge/fabric eksportować w otwartym formacie (OTel/gNMI), nawet jeśli analiza odbywa się w vendor platform.
+4. Nie używać object-storage-backed streamów do pętli sterowania wymagających sub-second deterministic latency.
 
 ### Trend tygodnia
 
-AI security przesuwa się z guardrails w modelu do egzekwowania poza modelem i hostem. BlueField-4 wykorzystuje DPU jako niezależny policy enforcement point. Zmniejsza to zaufanie do hosta, ale przenosi część ryzyka na correctness i availability rozproszonego control plane.
+Warstwa observability i automation przesuwa się w stronę wspólnego data plane, nad którym działają wyspecjalizowane modele decyzyjne. Jednocześnie trwa rozdzielanie storage od compute w stream processing. Efektem jest łatwiejsze skalowanie telemetryki, ale większa zależność od jakości danych, sampling policy i poprawności automatycznych decyzji.
 
 ### To obserwować
 
-- latency overhead Sentry;
-- wersjonowanie policy na tysiące DPU;
-- zachowanie podczas DPU/controller partition;
-- integracje OpenShell/Sentry z Kubernetes i Slurm;
-- interoperacyjność poza platformą NVIDIA.
+- p95/p99 Clef-flash na rzeczywistych policy workloads;
+- Cloudflare Traces sampling i koszt eksportu OTel;
+- K2 p99 produce latency po kolejnych iteracjach;
+- możliwość niezależnego replay/audytu decyzji modeli;
+- interoperacyjność telemetryki poza platformą dostawcy.
 
 ## Newsletters summary
 
-### Jalapeño: inference ASIC projektowany pod konkretne wzorce serving
+### FortiMail zero-day: management plane jako aktywna ścieżka kompromitacji
 
-- **Technologia / Zdarzenie:** OpenAI Jalapeño — https://openai.com/index/jalapeno-first-results/
-- **Mechanizm działania:** custom inference accelerator współprojektowany z software, z dużą pamięcią HBM i architekturą zoptymalizowaną pod kernels, memory movement i serving patterns.
-- **Wpływ na architekturę:** hyperscaler-specific ASIC może obniżyć cost/token i power/token, ale zwiększa coupling model-compiler-silicon.
-- **Failure modes i edge cases:** zmiana model architecture może obniżyć wykorzystanie wyspecjalizowanego siliconu; krytyczne są compiler maturity, yield i fallback na GPU.
+- **Technologia / Zdarzenie:** CVE-2026-104286, aktywna eksploatacja FortiMail.
+- **Mechanizm działania:** unauthenticated path traversal/NULL-byte flaw umożliwia zapis plików przez HTTP/HTTPS management interface.
+- **Wpływ:** appliance pocztowy może stać się persistent foothold na granicy sieci; wymagane mitigation i forensic triage, nie tylko późniejszy patch.
+- **Failure modes:** kompromitacja sprzed mitigacji, persistence poza artefaktem naprawianym przez patch, management wystawiony publicznie.
 
-### Open Agent Safety: enforcement poza agentem i hostem
+### Pi Durable: checkpointowany runtime dla długo działających agentów
 
-- **Technologia / Zdarzenie:** NVIDIA OpenShell + Sentry — https://nvidianews.nvidia.com/news/open-agent-safety-platform
-- **Mechanizm działania:** OpenShell egzekwuje polityki runtime, a Sentry na BlueField-4 zapewnia niezależny watchdog i enforcement.
-- **Wpływ na architekturę:** bezpieczeństwo agentów staje się częścią infrastruktury node/DPU, a nie wyłącznie model gateway.
-- **Failure modes i edge cases:** policy drift i DPU partition wymagają staged deployment, audytu i break-glass.
+- **Technologia / Zdarzenie:** Pi Durable — https://earendil.com/posts/pi-durable/
+- **Mechanizm działania:** każdy krok jest durable taskiem z checkpointem; po crashu runtime odtwarza niedokończone zadania. requestId zapewnia exactly-once submission, a application state jest commitowany atomowo razem z transcript.
+- **Wpływ:** agent może przeżyć restart procesu/hosta bez utraty workflow; model operacyjny zaczyna przypominać durable workflow engine, a nie sesję chat.
+- **Failure modes:** tool call musi jawnie deklarować bezpieczeństwo ponowienia; źle oznaczona operacja side-effect może zostać wykonana ponownie. Exactly-once na wejściu nie oznacza exactly-once dla zewnętrznego systemu.
+
+### Clef/Clef-flash: bounded decisions zamiast pełnego LLM
+
+- **Technologia / Zdarzenie:** wyspecjalizowane decision models z structured output.
+- **Mechanizm działania:** klasyfikacja/decyzja bez generowania długiego chainu tekstowego obniża latency i koszt.
+- **Wpływ:** potencjalny komponent szybkich policy gates dla agentów i AIOps.
+- **Failure modes:** domain shift, benchmark overfitting i brak deterministic fallback mogą propagować błędne decyzje do automatyki.
