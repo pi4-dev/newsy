@@ -1,83 +1,75 @@
-# Newsy — 2026-10-05
+# Newsy — 2026-10-06
 
-**Data podsumowania:** 2026-10-05  
-**Okno przyrostowe:** od raportu 2026-10-02 do 2026-10-05 08:01 CEST.
+**Data podsumowania:** 2026-10-06  
+**Okno przyrostowe:** od raportu 2026-10-05 do 2026-10-06 08:29 CEST.
 
 ## Raport technologiczny
 
 ### Technologia
 
-#### FortiMail CVE-2026-104286: aktywna eksploatacja unauthenticated arbitrary file write
+#### KVM/Firecracker: zgłoszony guest-to-host escape, ale bez publicznego root-cause
 
-Fortinet ujawnił CVE-2026-104286 (CVSS 9.8), aktywnie wykorzystywany przeciw FortiMail. Path traversal + NULL-byte handling pozwalają nieuwierzytelnionemu atakującemu zapisywać pliki w systemie przez management HTTP/HTTPS; CISA dodała podatność do KEV.
+Badacz Paulos Yibelo poinformował o uzyskaniu guest→host root w ramach Vercel Sandbox bounty; Vercel Sandbox wykorzystuje Firecracker/KVM. Na moment raportu brak publicznego CVE, reproduktora i technicznego advisory pozwalającego stwierdzić, czy błąd leży w KVM, Firecracker, konfiguracji Vercel czy w interakcji tych warstw.
 
-**Znaczenie:** internet-facing management plane FortiMail należy traktować jako incydent P1: odciąć ekspozycję, zastosować vendor mitigation, przeprowadzić forensic triage i nie zakładać, że późniejsze załatanie usuwa persistence. Failure mode to pozostawienie web management dostępnego z Internetu lub uznanie braku IOC za dowód braku kompromitacji.
+**Znaczenie:** dla platform uruchamiających nieufne workloady/agent sandboxes jest to sygnał wysokiego priorytetu do ograniczenia blast radius: separacja tenantów na hostach, ograniczenie nested virtualization i device exposure, szybki kernel/VMM patching oraz telemetryka host-side. Nie ma podstaw do awaryjnego traktowania wszystkich instalacji KVM jako podatnych przed publikacją szczegółów.
 
-**Źródła:** https://fortiguard.fortinet.com/psirt/FG-IR-26-175 ; https://www.cisa.gov/known-exploited-vulnerabilities-catalog?field_cve=CVE-2026-104286
+**Źródła:** https://www.theregister.com/offbeat/2026/10/06/security-researcher-claims-to-they-found-kvm-guest-host-escape-flaw/ ; https://cybernews.com/security/critical-kvm-zero-day-vulnerability-allows-vm-escape/
 
-#### Cloudflare scala logs, traces i analytics w jeden observability plane
+## Raport AI-ML
 
-Cloudflare uruchomił wspólny Logs home, request-level Traces w open beta, unified SQL API, custom alerts/dashboards oraz eksport przez Logpush. Tracing obejmuje security rules, transforms, cache, routing, Workers i origin, wspiera W3C trace context oraz eksport OpenTelemetry.
+### Biznes
 
-**Znaczenie:** korelacja edge→origin może skrócić MTTR przy 5xx/latency i ograniczyć ręczne sklejanie telemetryki z wielu produktów. Ryzyka to koszt/cardinality telemetryki, sampling ukrywający rzadkie p99/p999 zdarzenia oraz vendor lock-in zapytań i retencji; OTel export powinien pozostać ścieżką niezależności.
+#### Power availability staje się twardym ograniczeniem harmonogramu AI factory
 
-**Źródło:** https://blog.cloudflare.com/one-observability-platform/
+Morgan Stanley wskazuje, że niedobór dostępnej mocy zaczyna przesuwać terminy wdrożeń AI i może zmieniać profil popytu w łańcuchu dostaw: najbardziej narażone są komponenty, których dostawy są zsynchronizowane z uruchomieniem całych kampusów. NVIDIA i Broadcom są oceniane jako relatywnie lepiej zabezpieczone kontraktowo, ale opóźnienia energii przenoszą ryzyko na pamięci, optykę i pozostałe elementy BOM.
 
-#### Cloudflare K2: durable event log na object storage zamiast klasycznego Kafka substrate
+**Analiza:** capacity planning powinien traktować secured energization date jako zasób równie krytyczny jak przydział GPU. Zakup akceleratorów przed potwierdzeniem harmonogramu grid/substation może generować stranded inventory, koszty finansowania i skrócenie ekonomicznego okresu użycia generacji GPU.
 
-K2 przechowuje partycjonowany ordered log na R2, wykorzystując atomic operations do offsetów bez osobnego coordination service. Compute i storage skalują się niezależnie; batching segmentów redukuje koszt storage, ale pierwsza wersja ma około 1 s p99 produce latency.
+**Źródło:** https://www.reuters.com/business/nvidia-broadcom-shielded-ai-power-crunch-hits-chip-supply-chain-says-morgan-2026-10-05/
 
-**Znaczenie:** wzorzec object-storage-backed log jest atrakcyjny dla telemetryki i wysokiego fan-out, ale nie dla latency-sensitive event processing. Brak message-level retries i wyższa produce latency wymagają rozdzielenia workloadów queue/stream; awaria konsumenta jest tolerowana dzięki długiej retencji.
+### Technologia
 
-**Źródło:** https://blog.cloudflare.com/cloudflare-k2-streams/
+#### OpenAI Jalapeño: dojrzałość host platform wygrywa z teoretycznie nowszym CPU
 
-## AI for networking
+OpenAI wdraża Jalapeño ASIC z hostami AMD EPYC Turin i 1.5 TB RAM zamiast NVIDIA Vera. Według OpenAI kluczowe są dojrzałość platformy, doświadczenie operacyjne partnerów i serwisowalność socketed CPU; różnica benchmarkowa Vera nie kompensuje obecnie ryzyka platformowego.
 
-### Clef-flash: mały decision model jako element hot path automatyzacji
+**Analiza:** w rack-scale AI host CPU nadal wpływa na failure domains, provisioning i MTTR, mimo że nie jest głównym compute engine. Heterogeniczny ASIC+EPYC zmniejsza lock-in względem jednego dostawcy, ale zwiększa macierz walidacji firmware, NUMA/IOMMU, PCIe/CXL i telemetryki.
 
-- **Technologia / Zdarzenie:** Cloudflare Clef/Clef-flash — https://blog.cloudflare.com/clef-decision-models/
-- **Mechanizm działania:** model zwraca ograniczone structured decisions bez generowania tekstu pośredniego; Clef-flash osiąga w opublikowanych testach medianę 38.8 ms i p95 122.4 ms. Pipeline RL obejmuje AI Gateway dataset, rollouts, sandbox i ponowne wdrożenie modelu.
-- **Wpływ:** decision model może wykonywać klasyfikację/policy selection w hot path taniej i szybciej niż pełny LLM, co jest interesujące dla AIOps i policy automation.
-- **Failure modes:** benchmark producenta nie zastępuje testu domenowego; błędna decyzja jest szybsza, ale nadal błędna. Wymagane confidence thresholds, deterministic fallback, shadow mode i audyt dataset drift.
+**Źródło:** https://www.tomshardware.com/pc-components/cpus/openais-jalapeno-asics-are-deployed-alongside-amd-epyc-turin-cpus-as-hosts-hardware-vp-says-nvidias-vera-standalone-is-a-little-bit-behind-on-that-maturity-level
 
 ### Implikacje praktyczne
 
-1. Dla AI-driven network automation rozdzielać reasoning LLM od szybkiego, ograniczonego decision plane.
-2. Wymagać shadow-mode i replay testów przed wpuszczeniem modelu do ścieżki zmian sieciowych.
-3. Telemetrię edge/fabric eksportować w otwartym formacie (OTel/gNMI), nawet jeśli analiza odbywa się w vendor platform.
-4. Nie używać object-storage-backed streamów do pętli sterowania wymagających sub-second deterministic latency.
+1. Rezerwować i kontraktować moc, substation oraz energization milestones przed finalnym GPU purchase schedule.
+2. W TCO uwzględniać stranded-GPU risk wynikający z opóźnienia energii, chłodzenia i sieci.
+3. Host CPU/platform wybierać również według firmware maturity, field replaceability i MTTR, nie tylko benchmarków.
+4. Dla heterogenicznych ASIC/GPU utrzymywać osobną macierz kompatybilności host CPU, IOMMU/PCIe/CXL, NIC/DPU i firmware.
 
 ### Trend tygodnia
 
-Warstwa observability i automation przesuwa się w stronę wspólnego data plane, nad którym działają wyspecjalizowane modele decyzyjne. Jednocześnie trwa rozdzielanie storage od compute w stream processing. Efektem jest łatwiejsze skalowanie telemetryki, ale większa zależność od jakości danych, sampling policy i poprawności automatycznych decyzji.
+Wąskim gardłem AI factory coraz częściej nie jest dostępność samego akceleratora, lecz zdolność do uruchomienia kompletnego megawatowego systemu w terminie. Jednocześnie operatorzy zaczynają optymalizować komponenty pomocnicze pod ryzyko operacyjne i dojrzałość, zamiast maksymalizować każdy benchmark. To przesuwa przewagę z samego procurement GPU na koordynację power, cooling, network, host platform i finansowania.
 
 ### To obserwować
 
-- p95/p99 Clef-flash na rzeczywistych policy workloads;
-- Cloudflare Traces sampling i koszt eksportu OTel;
-- K2 p99 produce latency po kolejnych iteracjach;
-- możliwość niezależnego replay/audytu decyzji modeli;
-- interoperacyjność telemetryki poza platformą dostawcy.
+- secured MW vs announced MW w nowych kampusach AI;
+- opóźnienie grid connection / energization względem GPU delivery;
+- stranded inventory i wykorzystanie GPU w pierwszych 6–12 miesiącach;
+- adopcję AMD EPYC Turin jako host CPU dla custom ASIC;
+- relację czasu życia platformy hosta do cyklu wymiany akceleratorów.
+
+## euro neocloud
+
+### Nscale
+
+#### Loughton: ryzyko wieloletniego opóźnienia zasilania dla kampusu do 90 MW
+
+Nscale nadal opisuje Loughton jako lokalizację zdolną skalować przydział mocy do 90 MW. Nowsze doniesienia wskazują jednak, że wystarczająca moc sieciowa może nie być dostępna do wczesnych lub środkowych lat 2030., podczas gdy pierwotne plany zakładały uruchomienie znacznie wcześniej. Nscale analizuje przyspieszenie przyłączenia i generację on-site.
+
+**Ocena analityczna:** wykryty sygnał ostrzegawczy dotyczy przede wszystkim execution/capacity risk, a nie płynności. Przy planowanym GPU cloud wieloletnia różnica między compute delivery a grid energization może wymusić przenoszenie capacity do innych lokalizacji, własną generację lub zmianę harmonogramu klientów.
+
+**Ocena ryzyka: Wysokie** dla terminowości capacity w Loughton; **nie przenoszę tej oceny automatycznie na całą kondycję finansową Nscale**.
+
+**Źródła:** https://www.nscale.com/ai-infrastructure ; https://www.techradar.com/pro/nvidia-backed-neocloud-nscale-faces-years-of-delay-because-uks-largest-ai-supercomputer-cant-get-enough-power-from-the-grid-to-feed-its-data-centers
 
 ## Newsletters summary
 
-### FortiMail zero-day: management plane jako aktywna ścieżka kompromitacji
-
-- **Technologia / Zdarzenie:** CVE-2026-104286, aktywna eksploatacja FortiMail.
-- **Mechanizm działania:** unauthenticated path traversal/NULL-byte flaw umożliwia zapis plików przez HTTP/HTTPS management interface.
-- **Wpływ:** appliance pocztowy może stać się persistent foothold na granicy sieci; wymagane mitigation i forensic triage, nie tylko późniejszy patch.
-- **Failure modes:** kompromitacja sprzed mitigacji, persistence poza artefaktem naprawianym przez patch, management wystawiony publicznie.
-
-### Pi Durable: checkpointowany runtime dla długo działających agentów
-
-- **Technologia / Zdarzenie:** Pi Durable — https://earendil.com/posts/pi-durable/
-- **Mechanizm działania:** każdy krok jest durable taskiem z checkpointem; po crashu runtime odtwarza niedokończone zadania. requestId zapewnia exactly-once submission, a application state jest commitowany atomowo razem z transcript.
-- **Wpływ:** agent może przeżyć restart procesu/hosta bez utraty workflow; model operacyjny zaczyna przypominać durable workflow engine, a nie sesję chat.
-- **Failure modes:** tool call musi jawnie deklarować bezpieczeństwo ponowienia; źle oznaczona operacja side-effect może zostać wykonana ponownie. Exactly-once na wejściu nie oznacza exactly-once dla zewnętrznego systemu.
-
-### Clef/Clef-flash: bounded decisions zamiast pełnego LLM
-
-- **Technologia / Zdarzenie:** wyspecjalizowane decision models z structured output.
-- **Mechanizm działania:** klasyfikacja/decyzja bez generowania długiego chainu tekstowego obniża latency i koszt.
-- **Wpływ:** potencjalny komponent szybkich policy gates dla agentów i AIOps.
-- **Failure modes:** domain shift, benchmark overfitting i brak deterministic fallback mogą propagować błędne decyzje do automatyki.
+W bieżącym przebiegu nie było nowych nieprzeczytanych wiadomości z etykietą `NEWSY`. Wiadomości sklasyfikowane podczas wcześniejszej próby 2026-10-06 zachowują nadane etykiety; nie wykonano ponownej modyfikacji, aby utrzymać idempotencję.
