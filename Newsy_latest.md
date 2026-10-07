@@ -1,75 +1,125 @@
-# Newsy — 2026-10-06
+# Newsy — 2026-10-07
 
-**Data podsumowania:** 2026-10-06  
-**Okno przyrostowe:** od raportu 2026-10-05 do 2026-10-06 08:29 CEST.
+**Data podsumowania:** 2026-10-07  
+**Okno przyrostowe:** od raportu 2026-10-06 do 2026-10-07 07:27 CEST.
 
 ## Raport technologiczny
 
+### Biznes
+
+#### Schneider Electric przejmuje PTC za 22,6 mld USD
+
+Schneider Electric uzgodnił zakup PTC w transakcji gotówkowej wyceniającej equity na 22,6 mld USD; zamknięcie jest planowane na Q3 2027 po zgodach regulacyjnych. Połączenie wiąże dane projektowe/PLM PTC z warstwą OT, automatyki i zarządzania energią Schneider.
+
+**Znaczenie:** dla dużych środowisk przemysłowych rośnie prawdopodobieństwo integracji digital thread/digital twin z warstwą energetyczną i operacyjną jednego dostawcy. Korzyścią jest spójniejszy kontekst asset→operations; ryzykiem jest większy vendor lock-in obejmujący jednocześnie engineering data i OT.
+
+**Źródło:** https://www.sec.gov/Archives/edgar/data/857005/000119312526413124/d174191dex991.htm
+
 ### Technologia
 
-#### KVM/Firecracker: zgłoszony guest-to-host escape, ale bez publicznego root-cause
+#### Dell System Update: RCE/root na PowerEdge przez narzędzie zarządzające
 
-Badacz Paulos Yibelo poinformował o uzyskaniu guest→host root w ramach Vercel Sandbox bounty; Vercel Sandbox wykorzystuje Firecracker/KVM. Na moment raportu brak publicznego CVE, reproduktora i technicznego advisory pozwalającego stwierdzić, czy błąd leży w KVM, Firecracker, konfiguracji Vercel czy w interakcji tych warstw.
+Dell załatał CVE-2026-86360 oraz cztery dodatkowe podatności DSU; najpoważniejszy path traversal pozwala nieuwierzytelnionemu zdalnemu atakującemu uzyskać wykonanie kodu jako root w środowiskach korzystających z DSU deployment tool. Poprawka jest dostępna w DSU 2.3.0.0+; na moment raportu brak potwierdzonej aktywnej eksploatacji.
 
-**Znaczenie:** dla platform uruchamiających nieufne workloady/agent sandboxes jest to sygnał wysokiego priorytetu do ograniczenia blast radius: separacja tenantów na hostach, ograniczenie nested virtualization i device exposure, szybki kernel/VMM patching oraz telemetryka host-side. Nie ma podstaw do awaryjnego traktowania wszystkich instalacji KVM jako podatnych przed publikacją szczegółów.
+**Znaczenie:** management/update plane serwerów jest uprzywilejowaną ścieżką do całej floty. DSU powinien być niedostępny z sieci użytkowników/Internetu, objęty segmentacją management, allow-listingiem źródeł i szybkim upgrade; kompromitacja takiej warstwy może skalować się z pojedynczego hosta do wielu PowerEdge.
 
-**Źródła:** https://www.theregister.com/offbeat/2026/10/06/security-researcher-claims-to-they-found-kvm-guest-host-escape-flaw/ ; https://cybernews.com/security/critical-kvm-zero-day-vulnerability-allows-vm-escape/
+**Źródło:** https://www.dell.com/support/security/
+
+#### Bouncy Castle: błędne credential binding w Messaging Layer Security
+
+CVE-2026-71885 dotyczy Bouncy Castle Java przed 1.86 i niewłaściwej walidacji powiązania certyfikatu end-entity z kluczem podpisującym LeafNode w MLS. Skutkiem może być podszycie się pod uczestnika grupy i naruszenie poufności kanału; poprawka wymaga 1.86+.
+
+**Znaczenie:** biblioteka kryptograficzna jest transitive dependency w wielu aplikacjach, więc sama inwentaryzacja usług może nie ujawnić ekspozycji. Priorytetem jest SBOM/dependency scan oraz identyfikacja workloadów używających MLS, szczególnie agent-to-agent i secure group messaging.
+
+**Źródło:** https://www.bouncycastle.org/latest_releases.html
 
 ## Raport AI-ML
 
-### Biznes
-
-#### Power availability staje się twardym ograniczeniem harmonogramu AI factory
-
-Morgan Stanley wskazuje, że niedobór dostępnej mocy zaczyna przesuwać terminy wdrożeń AI i może zmieniać profil popytu w łańcuchu dostaw: najbardziej narażone są komponenty, których dostawy są zsynchronizowane z uruchomieniem całych kampusów. NVIDIA i Broadcom są oceniane jako relatywnie lepiej zabezpieczone kontraktowo, ale opóźnienia energii przenoszą ryzyko na pamięci, optykę i pozostałe elementy BOM.
-
-**Analiza:** capacity planning powinien traktować secured energization date jako zasób równie krytyczny jak przydział GPU. Zakup akceleratorów przed potwierdzeniem harmonogramu grid/substation może generować stranded inventory, koszty finansowania i skrócenie ekonomicznego okresu użycia generacji GPU.
-
-**Źródło:** https://www.reuters.com/business/nvidia-broadcom-shielded-ai-power-crunch-hits-chip-supply-chain-says-morgan-2026-10-05/
-
 ### Technologia
 
-#### OpenAI Jalapeño: dojrzałość host platform wygrywa z teoretycznie nowszym CPU
+#### Reflection Beam: 501B MoE, 23B aktywnych parametrów
 
-OpenAI wdraża Jalapeño ASIC z hostami AMD EPYC Turin i 1.5 TB RAM zamiast NVIDIA Vera. Według OpenAI kluczowe są dojrzałość platformy, doświadczenie operacyjne partnerów i serwisowalność socketed CPU; różnica benchmarkowa Vera nie kompensuje obecnie ryzyka platformowego.
+Reflection AI opisał Beam jako sparse Mixture-of-Experts 501B z około 23B aktywnych parametrów, trenowany na 23,8T tokenów i ponad 100 mln rolloutów RL. Model jest ukierunkowany na coding/reasoning/agentic workloads; open weights i artefakty deweloperskie mają zostać udostępnione później w październiku.
 
-**Analiza:** w rack-scale AI host CPU nadal wpływa na failure domains, provisioning i MTTR, mimo że nie jest głównym compute engine. Heterogeniczny ASIC+EPYC zmniejsza lock-in względem jednego dostawcy, ale zwiększa macierz walidacji firmware, NUMA/IOMMU, PCIe/CXL i telemetryki.
+**Analiza:** 23B active/501B total redukuje FLOPs/token względem dense 501B, ale nie usuwa kosztu pamięci na pełny zestaw ekspertów ani komunikacji all-to-all przy tensor/expert parallelism. O realnej efektywności infrastrukturalnej zdecydują expert locality, routing imbalance, KV-cache footprint i interconnect; bez wag i benchmarków servingowych nie należy ekstrapolować deklaracji wydajności.
 
-**Źródło:** https://www.tomshardware.com/pc-components/cpus/openais-jalapeno-asics-are-deployed-alongside-amd-epyc-turin-cpus-as-hosts-hardware-vp-says-nvidias-vera-standalone-is-a-little-bit-behind-on-that-maturity-level
+**Źródło:** https://reflection.ai/blog/introducing-beam
 
 ### Implikacje praktyczne
 
-1. Rezerwować i kontraktować moc, substation oraz energization milestones przed finalnym GPU purchase schedule.
-2. W TCO uwzględniać stranded-GPU risk wynikający z opóźnienia energii, chłodzenia i sieci.
-3. Host CPU/platform wybierać również według firmware maturity, field replaceability i MTTR, nie tylko benchmarków.
-4. Dla heterogenicznych ASIC/GPU utrzymywać osobną macierz kompatybilności host CPU, IOMMU/PCIe/CXL, NIC/DPU i firmware.
+1. Dla dużych MoE capacity planować osobno compute-per-token i memory/interconnect footprint pełnego modelu.
+2. Przed wyborem platformy servingowej mierzyć expert imbalance, all-to-all traffic oraz p95/p99 TTFT/ITL, nie tylko tokens/s.
+3. Open weights traktować jako warunek dopiero po faktycznym wydaniu artefaktów i licencji, nie na podstawie zapowiedzi.
+4. Dla agentic inference uwzględniać długie sesje i KV-cache jako osobny limiter pojemności.
 
 ### Trend tygodnia
 
-Wąskim gardłem AI factory coraz częściej nie jest dostępność samego akceleratora, lecz zdolność do uruchomienia kompletnego megawatowego systemu w terminie. Jednocześnie operatorzy zaczynają optymalizować komponenty pomocnicze pod ryzyko operacyjne i dojrzałość, zamiast maksymalizować każdy benchmark. To przesuwa przewagę z samego procurement GPU na koordynację power, cooling, network, host platform i finansowania.
+MoE pozostaje głównym mechanizmem zwiększania pojemności modelu bez proporcjonalnego wzrostu FLOPs/token. Wąskie gardło przesuwa się jednak z samego GEMM w stronę pamięci, komunikacji expert-to-expert i jakości routingu. Dla operatora klastra oznacza to, że liczba aktywnych parametrów jest niewystarczającą metryką sizingu.
 
 ### To obserwować
 
-- secured MW vs announced MW w nowych kampusach AI;
-- opóźnienie grid connection / energization względem GPU delivery;
-- stranded inventory i wykorzystanie GPU w pierwszych 6–12 miesiącach;
-- adopcję AMD EPYC Turin jako host CPU dla custom ASIC;
-- relację czasu życia platformy hosta do cyklu wymiany akceleratorów.
+- faktyczne wydanie wag Beam i licencję;
+- VRAM/HBM footprint oraz wymagania multi-node;
+- p95/p99 TTFT i inter-token latency;
+- expert routing imbalance i all-to-all bandwidth;
+- throughput przy długim kontekście i wysokim concurrency.
 
-## euro neocloud
+## AI for networking
 
-### Nscale
+### IAM dla agentów: autoryzacja musi pozostać w systemie docelowym
 
-#### Loughton: ryzyko wieloletniego opóźnienia zasilania dla kampusu do 90 MW
+Oracle opisuje wzorzec, w którym MCP i agenci zachowują uprawnienia użytkownika, używają tymczasowych credentiali, least privilege i wymagają human approval dla operacji wrażliwych. Agent nie staje się nadrzędnym security principal omijającym istniejące policy enforcement points.
 
-Nscale nadal opisuje Loughton jako lokalizację zdolną skalować przydział mocy do 90 MW. Nowsze doniesienia wskazują jednak, że wystarczająca moc sieciowa może nie być dostępna do wczesnych lub środkowych lat 2030., podczas gdy pierwotne plany zakładały uruchomienie znacznie wcześniej. Nscale analizuje przyspieszenie przyłączenia i generację on-site.
+**Analiza:** ten model jest właściwy również dla network automation: LLM/MCP powinien generować intencję, ale AAA/RBAC i finalne enforcement muszą pozostać po stronie kontrolera, urządzenia lub systemu IaC. Failure mode to shared service account z szerokimi prawami, który zamienia prompt injection lub błąd modelu w pełnoprawny change-plane compromise.
 
-**Ocena analityczna:** wykryty sygnał ostrzegawczy dotyczy przede wszystkim execution/capacity risk, a nie płynności. Przy planowanym GPU cloud wieloletnia różnica między compute delivery a grid energization może wymusić przenoszenie capacity do innych lokalizacji, własną generację lub zmianę harmonogramu klientów.
+**Źródło:** https://blogs.oracle.com/cloud-infrastructure/iam-enables-ai-transformation-at-oracle
 
-**Ocena ryzyka: Wysokie** dla terminowości capacity w Loughton; **nie przenoszę tej oceny automatycznie na całą kondycję finansową Nscale**.
+### Implikacje praktyczne
 
-**Źródła:** https://www.nscale.com/ai-infrastructure ; https://www.techradar.com/pro/nvidia-backed-neocloud-nscale-faces-years-of-delay-because-uks-largest-ai-supercomputer-cant-get-enough-power-from-the-grid-to-feed-its-data-centers
+1. Nie nadawać agentom współdzielonych stałych credentiali do urządzeń sieciowych.
+2. Propagować identity użytkownika przez MCP/API do docelowego policy enforcement point.
+3. Stosować short-lived credentials i approval gate dla write/config/rollback.
+4. Rejestrować osobno intent modelu, decyzję policy engine i faktycznie wykonaną zmianę.
+5. Testować prompt/tool injection jako element change-management threat model.
+
+### Trend tygodnia
+
+Agentic automation przesuwa problem z jakości generowanego tekstu na kontrolę uprawnień i skutków działań. Najbezpieczniejszy wzorzec nie daje modelowi autonomicznego superkonta, lecz wykorzystuje istniejące IAM/RBAC jako nieprzekraczalną granicę. W sieciach będzie to szczególnie istotne przy MCP do kontrolerów, IaC i systemów NMS.
+
+### To obserwować
+
+- identity propagation przez MCP;
+- standardy workload/agent identity;
+- short-lived credentials dla network automation;
+- approval/audit integration z GitOps;
+- granularne RBAC dla narzędzi wywoływanych przez agentów.
 
 ## Newsletters summary
 
-W bieżącym przebiegu nie było nowych nieprzeczytanych wiadomości z etykietą `NEWSY`. Wiadomości sklasyfikowane podczas wcześniejszej próby 2026-10-06 zachowują nadane etykiety; nie wykonano ponownej modyfikacji, aby utrzymać idempotencję.
+### Dell System Update — uprzywilejowany management plane PowerEdge
+
+- **Technologia/Zdarzenie:** CVE-2026-86360 i powiązane podatności DSU.
+- **Mechanizm działania:** path traversal/RCE w narzędziu deployment/update może prowadzić do wykonania kodu jako root.
+- **Wpływ:** potencjalny kompromis wielu serwerów z jednego uprzywilejowanego management plane.
+- **Failure modes:** ekspozycja DSU poza management VLAN, brak szybkiego patchingu, współdzielone credentiale i brak segmentacji.
+
+### Bouncy Castle MLS — zerwane powiązanie tożsamości z kluczem LeafNode
+
+- **Technologia/Zdarzenie:** CVE-2026-71885, Bouncy Castle Java <1.86.
+- **Mechanizm działania:** niewystarczająca walidacja credential binding umożliwia podszywanie się pod uczestników MLS.
+- **Wpływ:** ryzyko dla aplikacji secure group messaging i agent-to-agent wykorzystujących bibliotekę pośrednio.
+- **Failure modes:** niepełny SBOM, zależności transitive, aktualizacja aplikacji bez aktualizacji bundlowanej biblioteki.
+
+### Reflection Beam — duży sparse MoE dla agentic workloads
+
+- **Technologia/Zdarzenie:** 501B total / 23B active MoE.
+- **Mechanizm działania:** sparse expert routing ogranicza compute per token, ale wymaga przechowywania ekspertów i komunikacji all-to-all.
+- **Wpływ:** potencjalnie korzystny throughput/cost przy odpowiednim expert parallelism.
+- **Failure modes:** hot experts, routing imbalance, interconnect saturation, duży memory footprint i brak jeszcze publicznych artefaktów do niezależnej walidacji.
+
+### IAM dla agentów — backend pozostaje enforcement point
+
+- **Technologia/Zdarzenie:** wzorzec Oracle IAM/MCP.
+- **Mechanizm działania:** identity propagation, temporary access, least privilege i human approval.
+- **Wpływ:** ograniczenie blast radius agentów wykonujących operacje w systemach infrastrukturalnych.
+- **Failure modes:** shared privileged service accounts, utrata kontekstu użytkownika i brak audytu decyzja→akcja.
