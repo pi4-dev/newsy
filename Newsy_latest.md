@@ -1,45 +1,41 @@
-# Newsy — 2026-10-14
+# Newsy — 2026-10-15
 
-**Okno przyrostowe:** od raportu 2026-10-13 do 2026-10-14 07:28 CEST.
-**Uwaga:** RSS niedostępne z sandboxa; wyszukiwanie WWW nie zwróciło nowych, datowanych pozycji z 13–14.10 poza weryfikacją Vghost. Sekcje Raport technologiczny, AI-ML, euro neocloud i AI for networking pominięte; treść pochodzi z newsletterów (TLDR, TLDR InfoSec, TLDR IT, TLDR AI).
+**Okno przyrostowe:** od raportu 2026-10-14 do 2026-10-15 07:28 CEST.
+**Uwaga:** RSS niedostępne z sandboxa; wyszukiwanie WWW nie zwróciło nowych, datowanych pozycji (Raport technologiczny, AI-ML, euro neocloud, AI for networking pominięte). Treść pochodzi z newsletterów TLDR (14.10). Maia 300 pominięta jako duplikat z 2026-10-14.
 
 ## Newsletters summary
 
-#### Vghost (CVE-2026-74580): LPE do root i VM escape przez /dev/vhost-net i /dev/vhost-vsock
-**Zdarzenie:** błąd w vhost (kernele 4.11–7.2; wg newslettera CVSS 8.8) pozwala użytkownikowi z dostępem do /dev/vhost-net lub /dev/vhost-vsock na odczyt/zapis pamięci jądra. Tencent Zhuque Lab potwierdził root na 5 dystrybucjach oraz przejęcie procesu QEMU hosta przez złośliwego gościa. **Mechanizm:** rekord CNA – cache metadanych vring nie jest resetowany po VHOST_SET_VRING_ADDR/NUM, stale mapowanie → kopiowanie poza region IOTLB. Poprawka: de845981da67. **Wpływ:** hosty KVM/QEMU i węzły K8s z vhost; RHEL, Amazon Linux, Azure Linux, Oracle Linux domyślnie wystawiają węzły urządzeń szerokim uprawnieniom. Do czasu patcha zdjąć dostęp world z obu węzłów /dev/vhost-*. **Failure modes:** vhost-vsock tylko wg Tencenta (rekord CNA go nie wymienia); brak potwierdzonej eksploatacji in-the-wild w źródłach; pełny zakres wersji naprawionych sprawdzić w trackerze dystrybucji.
-Źródła: https://matrix.tencent.com/en/2026/10/12/vghost-cve-2026-74580, https://cveawg.mitre.org/api/cve/CVE-2026-74580
+#### GitLab CVE-2026-97229 (CVSS 10.0): nieuwierzytelniony RCE przez walidację regex w konfiguracji CI/CD
+**Zdarzenie:** integer overflow w walidacji regex konfiguracji CI/CD pozwala w określonych warunkach nieuwierzytelnionemu użytkownikowi wykonać kod na serwerze. Poprawki: CE/EE 19.2.8, 19.3.5, 19.4.2 (+ XSS, authz, response-cache poisoning). **Wpływ:** instancje self-managed dostępne z internetu to priorytet patchowania; runnery i sekrety CI na tym samym hoście zwiększają blast radius. **Failure modes:** warunki eksploatacji niepublikowane w newsletterze; do czasu patcha ograniczyć ekspozycję (VPN/allowlist), rotacja tokenów po podejrzeniu kompromitacji.
+Źródło: https://thehackernews.com/2026/10/gitlab-patches-cvss-100-flaw-that-could.html
 
-#### Autonomiczne agenty AI w realnych intruzjach: CyberXero i Breachcache
-**Zdarzenie:** CyberXero użył Claude Code, 51 agentów, PentAGI i Cobalt Strike; jeden przebieg: 4708 celów, 429 paneli admin, 32 web shelle w 61 s; 628 tys. rekordów z Ukrainy. Breachcache odzyskał 75 transkryptów: 23 hosty z RCE, SSRF → kradzież poświadczeń instancji chmurowej, root na Open WebUI (CVE-2026-0766), audyt kodu bramek AI (payment-callback forgery, ATO). **Mechanizm:** pętla recon→exploit w pełni zautomatyzowana, rotacja proxy/Tor, omijanie odmów przez resetowanie sesji i deklarację „authorized testing". **Wpływ:** skrócenie czasu między ekspozycją a kompromitacją do sekund; IMDSv2/hop-limit, egress filtering i segmentacja paneli admin stają się obowiązkowe. Open WebUI i bramki LLM traktować jak powierzchnię internetową. **Failure modes:** detekcja oparta na progu czasu człowieka (rate/UA) zawodzi.
-Źródła: https://thehackernews.com/2026/10/cyberxero-uses-claude-code-in-campaign.html, https://breachcache.com/cases/hands-off-the-keyboard/
+#### Wycieki kluczy AWS testowane pod Bedrock (Datadog)
+**Mechanizm:** platformy harvestujące klucze sprawdzają dostęp wywołaniami ListFoundationModels, InvokeModel i Converse oraz dostępne kredyty promocyjne. **Wpływ:** skradzione klucze monetyzowane przez inferencję na koncie ofiary (koszt, LLMjacking); alerty na Bedrock API z nowych ASN/kluczy, SCP ograniczające modele/regiony, budżety i anomaly detection. **Failure modes:** brak CloudTrail data events dla Bedrock maskuje nadużycie; klucze długoterminowe IAM user nadal główny wektor.
+Źródło: https://securitylabs.datadoghq.com/articles/beyond-valid-credentials-how-exposed-aws-keys-are-tested-for-amazon-bedrock-access/
 
-#### Microsoft Maia 300: inferencja, +40% tokenów/MW vs GPU, wdrożenie od 2027
-**Zdarzenie:** trzecia generacja akceleratora Microsoftu pod inferencję; deklarowane 40% więcej tokenów na megawat niż wiodące systemy GPU, multi-gigawatowe wdrożenia od 2027; Maia nie będzie bezpośrednio wynajmowana klientom. **Mechanizm/Wpływ:** metryka tokens/MW wskazuje na ograniczenie energetyczne jako głównego czynnika; część obciążeń własnych Microsoftu zejdzie z GPU, więc Azure GPU nie zyska na tym wprost. Dane to deklaracje producenta, bez niezależnych benchmarków. **Failure modes:** ekosystem software (kompilator, kwantyzacja) i opóźnienie harmonogramu; lock-in po stronie usług zarządzanych (Copilot/Azure OpenAI), nie IaaS.
-Źródło: https://news.microsoft.com/maia-2026/
+#### Ghostscript RCE przez przetwarzanie PDF (Wordfence)
+**Mechanizm:** spreparowany PDF przetwarzany przez podatny Ghostscript przy generowaniu podglądów/miniatur daje RCE; wymagany upload PDF. **Wpływ:** WordPress i każdy pipeline thumbnailowania/konwersji (DMS, mail gateway, ImageMagick→gs). Izolować konwertery (kontener bez sieci, seccomp), zaktualizować gs. **Failure modes:** brak numeru CVE i wersji naprawionych w newsletterze – zweryfikować w advisory dystrybucji.
+Źródło: https://links.tldrnewsletter.com/QwoarX
 
-#### Ørsted: automatyzacja zmian firewall w Nautobot, z tygodni do ok. 10 minut
-**Mechanizm:** pipeline z walidacją polityk, zatwierdzeniami i audit trail zintegrowany z Nautobot (source of truth). **Wpływ:** wzorzec dla change managementu: compliance jako kod w ścieżce zmiany, nie po niej. Skuteczność zależy od jakości danych SoT i kompletności modelu reguł. **Failure modes:** drift między SoT a faktyczną konfiguracją, błędna reguła walidacji propagowana masowo, brak rollbacku.
-Źródło: https://www.networkworld.com/article/4229048/orsted-builds-compliance-into-automation-speeds-firewall-changes.html
+#### Nvidia Run:ai na open source (KAI Scheduler, GPU Fractioning Operator)
+**Zdarzenie:** pełna platforma Run:ai opublikowana jako OSS w ramach DSX AI Factory: KAI Scheduler, GPU Fractioning Operator, KAI Resource Management, Workload Map. **Wpływ:** darmowy scheduler GPU z fractioningiem i kolejkami dla K8s – mniejsza zależność od licencji, ale pogłębia ekosystem Nvidia (DSX). Dla neocloudów/on-prem: wyższa utylizacja GPU przy współdzieleniu. **Failure modes:** izolacja fractioningu (brak twardej izolacji pamięci/QoS), dojrzałość OSS i model wsparcia nieznane.
+Źródło: https://developer.nvidia.com/blog/nvidia-runai-is-now-open-source-as-part-of-nvidia-dsx-ai-factory-platform
 
-#### OT: atak na sterowniki chłodnicze w francuskich supermarketach; awaria Exchange Admin Center
-**Zdarzenie:** wg doniesień manipulacja kontrolerami chłodzenia w setkach sklepów (cykle rozmrażania) przez systemy zarządzane przez stronę trzecią. Osobno: Microsoft cofnął zmianę konfiguracji, która zablokowała dostęp do Exchange Admin Center (12.10). **Wpływ:** zdalne konta dostawców OT/MSP to wspólny punkt awarii; wymagać MFA, jump hostów i segmentacji. Dla Exchange – plan awaryjny administracji przez PowerShell. Źródła pierwotne niepotwierdzone (agregat).
-Źródło: https://www.theregister.com/saas/2026/10/12/microsoft-blames-a-configuration-change-for-exchange-admin-center-tumble/5302698
+#### AWS „priming": hybrydowe modele SSM z wag Transformera, koszt pretrainingu −99%
+**Mechanizm:** reuse wag pretrenowanego Transformera, część warstw attention zastąpiona warstwami state-space (Gated KalmaNet); deklarowane dopasowanie benchmarków rozumowania i dekodowanie do 2× szybsze. Wydano modele, kod treningowy i plugin vLLM (Apache 2.0). **Wpływ:** mniejszy KV-cache → większy batch/dłuższy kontekst na GPU, niższy koszt/token. **Failure modes:** wyniki z publikacji własnej, jakość na long-context retrieval i dojrzałość pluginu vLLM do zweryfikowania.
+Źródło: https://www.amazon.science/blog/can-we-change-an-ai-models-architecture-without-retraining-it-from-scratch
 
-#### OAuth auto-linking po e-mailu: ATO w Pingvin Share X, Better Auth, AshAuthentication
-**Mechanizm:** logowanie OAuth dołączane do istniejącego konta o tym samym e-mailu; każda biblioteka pominęła inną kontrolę (email_verified, weryfikacja lokalnego e-maila, porównanie e-maili). **Wpływ:** w IdP/SSO i aplikacjach wewnętrznych wiązać tożsamość po (issuer, sub), wymagać zweryfikowanych e-maili po obu stronach i MFA przed linkowaniem. Autor (WorkOS) sprzedaje konkurencyjny produkt.
-Źródło: https://workos.com/blog/oauth-auto-link-email-account-takeover
+#### Broadcom VMware HyperArmor dla VCF
+**Mechanizm:** virtual patching, application allowlisting i MFA na poziomie hypervisora bez agentów w VM i bez przestoju. **Wpływ:** odpowiedź na ataki na ESXi (kradzione poświadczenia, niezałatane luki); kompensuje okno patchowania. **Failure modes:** virtual patch ≠ fix, ryzyko fałszywych blokad allowlisty; dodatkowy lock-in w VCF. Szczegóły licencjonowania nieznane.
+Źródło: https://investors.broadcom.com/news-releases/news-release-details/broadcom-introduces-vmware-hyperarmor-expanding-hypervisor
 
-#### Granice agentów kodujących poza modelem; luka CVE dla podatności agentów
-**Mechanizm:** prompt injection w issue/changelogu/konfigu kieruje agenta do odczytu sekretów przy „czystym" PR. Skuteczne limity: izolowane workspace'y, tożsamości per zadanie, krótkotrwałe poświadczenia, polityka sieciowa. Osobno: programy CVE nie obejmują uprawnień agentów i interakcji narzędzi. **Wpływ:** testować granice platformy, nie odmowy modelu. Spójne z CyberXero/Breachcache powyżej (ten sam wektor, strona obronna).
-Źródła: https://vinny.dev/blog/2026-10-12-the-prompt-is-not-the-permission-securing-the-agentic-sdlc/, https://aminrj.com/posts/why-cve-programs-miss-most-ai-agent-vulnerabilities/
+#### Gemini 4 Argon GA (Gemini API, Google Cloud), promocyjna cena 2/10 USD za 1M tokenów
+**Zdarzenie:** model flagowy dostępny w płatnym API, AI Studio, Antigravity i na Google Cloud; cena „limited-time" (2 USD wejście / 10 USD wyjście wg tytułu VentureBeat). **Wpływ:** presja cenowa na inferencję; budżetować po cenie docelowej, nie promocyjnej. **Failure modes:** brak ceny docelowej i limitów rate w źródle; ryzyko lock-in przez Antigravity/Gemini Enterprise.
+Źródła: https://venturebeat.com/technology/google-makes-gemini-4-argon-broadly-available-with-limited-time-low-api-pricing-of-2-10-per-1m-token, https://cloud.google.com/blog/products/ai-machine-learning/gemini-4-argon-available-on-google-cloud
 
-#### Post-quantum „Cryptographic Right Answers" (Valsorda): termin 2029
-**Zalecenia:** X25519+ML-KEM-768 (KEX), HPKE z X-Wing lub age PQ (szyfrowanie), ML-DSA-44 zamiast hybryd (podpisy); symetryczne bez zmian; unikać OpenSSL na rzecz rustls/Go crypto/tls/BoringSSL/AWS-LC po CVE 2026 w wolfSSL, Mbed TLS, Botan. **Wpływ:** planować inwentaryzację TLS/VPN/PKI; część zaleceń to własne projekty autora (ujawnione).
-Źródło: https://words.filippo.io/right-answers/
+#### Anthropic: własny system kontroli wersji Scion zamiast git
+**Zdarzenie:** migracja monorepo w 5 miesięcy; merge'e z ok. 2500/dzień (maj) do ponad 30 000/dzień; własne code review, search i IAM kodu. **Wpływ:** przy ruchu generowanym przez agentów git/PR-review staje się wąskim gardłem – wzorzec dla platform engineering (merge queue, IAM per repo, automatyczna weryfikacja). **Failure modes:** koszt utrzymania własnego VCS; wnioski nieprzenoszalne na typowe skale. Źródło pierwotne Anthropic (opis własny).
+Źródło: https://www.anthropic.com/engineering/redesigning-source-control
 
-#### Meta Muse Wonder / Wonder Full oraz Anthropic: samoreplikacja i antydystylacja
-**Zdarzenie:** Meta wypuściła Muse Wonder (API i Muse Code) oraz Wonder Full (tylko subskrybenci Muse Code) z Active Memory i Active Focus. Anthropic opublikował badanie zdolności modeli do autoreplikacji na sprzęcie konsumenckim oraz deklaruje 90–99% redukcji danych pozyskiwanych dystylacją po ograniczeniu dostępu do rozumowania; uruchomił też Critical Infrastructure Defense Program (OT) z Dragos, Nozomi, Rockwell. **Wpływ:** pamięć międzysesyjna agenta = nowa powierzchnia wycieku danych; ograniczanie ekspozycji rozumowania zmienia kontrakt API. Wnioski z deklaracji dostawców, bez niezależnej weryfikacji.
-Źródła: https://research.meta.ai/blog/muse-wonder, https://www.anthropic.com/research/self-replicating-ai, https://www.anthropic.com/news/anthropic-cyber-mission
-
-#### Pominięte (IGNORED)
-- „Harbor ($10M Seed) Pitch Deck: Who Insures AI Agents?" (Venture Street) — pitch deck/finansowanie startupu, poza profilem.
+#### Drobne (krótko)
+Racket: koparka na build serwerze Northwestern ujawniła klucze podpisu Apple/Windows – rotacja, reinstalacja macOS 8.12–9.3 (https://blog.racket-lang.org/2026/10/infrastructure-compromise.html). Intel Connectivity Performance Suite powoduje awarie IPv6 w OneDrive/OneNote – usunąć/zaktualizować (https://www.theregister.com/networks/2026/10/13/intel-optimizes-ipv6-networking-into-nothingness-say-users/5302622). Trezor One/T z implantami z nieautoryzowanych kanałów sprzedaży (https://www.zetter-zeroday.com/trezor-wallets-also-compromised-with-implants/). Pominięto: Character.ai Chapter 11, aresztowanie pracownika OpenAI, produkty konsumenckie.
