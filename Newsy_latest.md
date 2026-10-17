@@ -1,57 +1,65 @@
-# Newsy — 2026-10-16
+# Newsy — 2026-10-17
 
-**Okno przyrostowe:** od raportu 2026-10-15 do 2026-10-16 07:28 CEST.
-**Uwaga:** RSS (HPCwire 403) i wyszukiwanie WWW nie zwróciły nowych, datowanych pozycji – sekcje Raport technologiczny, AI-ML, euro neocloud, AI for networking pominięte. Treść pochodzi z newsletterów (TLDR 15.10, SemiAnalysis 15.10). Anthropic Scion i Gemini 4 Argon pominięte jako duplikaty z 2026-10-15.
+**Okno przyrostowe:** od raportu 2026-10-16 do 2026-10-17 07:28 CEST.
+**Uwaga:** WWW/RSS nie zwróciły nowych, datowanych pozycji (euro neocloud: brak materiału z X 2026) – sekcje Raport technologiczny, AI-ML, euro neocloud, AI for networking pominięte. Treść z newsletterów TLDR z 16.10 (poz. już ujęte w poprzedniej edycji pominięto: Ivanti, XBOW, Discourse, UEC 1.1, Cisco/Nvidia 12,8T, SolarWinds Avior, vLLM NIXL, Netflix GPU, ClickHouse, ASML hybrid bonding, przychód Anthropic, OTel Claude).
 
 ## Newsletters summary
 
-#### Ivanti Connect Secure: nowy zero-day (auth bypass → komendy), aktywnie wykorzystywany
-**Zdarzenie:** niskozłożoność obejście uwierzytelniania pozwala wykonać dowolne komendy; Volexity obserwuje łańcuch z dwiema innymi lukami do wykonania poleceń jako root. **Wpływ:** VPN na styku sieci = bezpośredni dostęp do segmentu wewnętrznego, kradzież sesji/poświadczeń. **Failure modes:** mitigacje/patch niepodane w newsletterze – sprawdzić advisory Ivanti; po kompromitacji factory reset + rotacja wszystkich sekretów (reset appliance nie usuwa ukradzionych kredencjałów), ICT.
-Źródło: https://links.tldrnewsletter.com/B0XJ25
+#### Cisco Secure Email Gateway: CVE-2026-76519 (CVSS 9.8), 0-day wykorzystywany aktywnie
+**Zdarzenie:** krytyczna luka eskalująca do root na SEG, exploitowana przez nieznaną grupę przed patchem. **Wpływ:** SEG na styku = punkt pivotu do sieci wewnętrznej i dostęp do całej poczty; priorytet patchowania/ograniczenie ekspozycji interfejsów zarządzania. **Failure modes:** brak patcha w dniu 0 – kompromitacja możliwa mimo hardeningu; wymagany threat hunting wstecz.
+Źródło: https://www.theregister.com/security/2026/10/14/cisco-make-me-root-email-bug-exploited-as-a-0-day-by-unknown-crims/5303168
 
-#### XBOW: Chrome full chain w 6 dni (~40 tys. USD kosztów API), pierwsza nagroda 250 tys. USD
-**Mechanizm:** Maglev deopt (R/W w cage) → TOCTOU w animowanym WebP/ImageDecoder (ucieczka z V8 sandbox) → overflow w Crashpad (retry-read) wyścigany wątkiem freeze-exempt (wyjście z sandboxa renderera). **Wpływ:** koszt budowy łańcucha exploitów spada do kosztu compute; okno patchowania przeglądarek (Chrome 155.0.8059.79/.80 – 37 poprawek, 7 krytycznych) trzeba skracać. **Failure modes:** klasa błędów „zmiana stanu uznawanego za niezmienny" (transferowane bufory, zawieszone procesy).
-Źródło: https://xbow.com/labs/research/zero-to-calc-in-six-days-inside-xbow-chrome-full-chain
+#### BeyondTrust Remote Support: ostrzeżenie Google o masowej eksploatacji (BT26-05)
+**Zdarzenie:** luka używana w ukierunkowanych atakach od sierpnia; Google ostrzega przed szerokim wykorzystaniem (podejrzewane grupy powiązane z Chinami). Hosting BeyondTrust załatany; self-hosted – patche BT26-05 oraz prewencyjny dla Privileged Remote Access. **Wpływ:** narzędzia PAM/RS mają uprzywilejowany dostęp do hostów – kompromitacja = lateral movement. **Failure modes:** instancje self-hosted wystawione do internetu.
+Źródło: https://links.tldrnewsletter.com/Qyxngq
 
-#### Discourse CVE-2026-55420: odczyt/zapis plików przez ImageMagick (TOCTOU)
-**Mechanizm:** race w pipeline uploadu obrazów pozwala użytkownikowi niskouprzywilejowanemu uruchomić PostScript/MSL. Fix: default-deny policy ImageMagick. **Wpływ:** ten sam wzorzec dotyczy każdego pipeline'u konwersji obrazów (policy.xml z wyłączonymi delegatami). **Failure modes:** konwertery bez izolacji (sieć, FS) zamieniają błąd parsera w RCE.
-Źródło: https://gbhackers.com/discourse-imagemagick-vulnerability-enables-arbitrary-file-read-through-malicious-image-uploads
+#### curl 8.23.0: CVE-2026-92392 – HTTP/2 UAF → RCE po stronie klienta
+**Mechanizm:** reset na wstrzymanym strumieniu uploadu zostawia dangling pointer do zwolnionego easy handle; przy cleanupie multi-handle dane serwera nadpisują pamięć (w tym wskaźnik funkcji), wyciek adresów omija ASLR. Wykryte przez Anthropic OSS Scanner. **Wpływ:** złośliwy serwer może atakować klientów libcurl (agenty, CI, proxy); maintainerzy dali < CRITICAL (wymaga ~135 KB uploadu i zależy od układu alokacji w distro/libc). **Zalecenie:** aktualizacja libcurl w obrazach bazowych i kontenerach.
+Źródło: https://daniel.haxx.se/blog/2026/10/14/a-uaf-turned-rce/
 
-#### Ultra Ethernet 1.1: scale-up i programowalna kontrola zatorów
-**Zdarzenie:** wersja 1.1 rozszerza specyfikację na sieci scale-up oraz dodaje programowalną kontrolę congestion. **Wpływ:** potencjalna alternatywa dla NVLink/InfiniBand w klastrach AI; wpływ na wybór fabric zależy od dostępności ASIC-ów i dojrzałości implementacji. **Failure modes:** brak informacji o sprzęcie GA; interoperacyjność między vendorami niezweryfikowana.
-Źródło: https://www.networkworld.com/article/4235340/ultra-ethernet-1-1-extends-the-specification-to-scale-up-networks-and-adds-programmable-congestion-control.html
+#### Claude Code Desktop „SneakPeek”: zero-click przez podgląd HTML (Noma)
+**Mechanizm:** złośliwy HTML w publicznym repo uruchamiał się w panelu podglądu przy review/edycji; łańcuch słabości omijał sandbox i kradł poświadczenia AWS/GitHub/SSH/OAuth; Noma znalazła obejście pierwszej poprawki, załatane. **Wpływ:** stacje deweloperskie z długożyciowymi sekretami = wysoki blast radius przy narzędziach agentowych. **Zalecenie:** aktualizacja, krótkożyciowe poświadczenia, izolacja środowiska pracy z niezaufanym repo.
+Źródło: https://links.tldrnewsletter.com/qezkOs
 
-#### Cisco + Nvidia: propozycja optycznego form factora do 12,8 Tbps
-**Zdarzenie:** nowy pluggable o wyższej gęstości i lepszej efektywności energetycznej; wdrożenia komercyjne odległe. **Wpływ:** planowanie portów/zasilania pod 1,6T+ ; ryzyko rozdrobnienia standardów (vs OSFP/QSFP-DD). **Failure modes:** brak specyfikacji mocy i chłodzenia w źródle.
-Źródło: https://assets.theregister.com/2026/10/14/20269/
+#### Drupal: CVE-2026-108097 – krytyczny Field UI, ścieżka do RCE bez uwierzytelnienia (przez moduły contrib)
+**Wpływ:** exploitowalność zależy od zainstalowanych modułów contrib; inwentaryzacja i patch.
+Źródło: https://thehackernews.com/2026/10/drupal-patches-critical-core-rce-flaw.html
 
-#### SolarWinds Avior: agenci AI do operacji sieciowych
-**Zdarzenie:** agenci badają incydenty, wykrywają configuration drift i wspierają remediację; tryby od zatwierdzania przez człowieka po autonomiczne z audytem. **Wpływ:** dla zespołów NetOps – czas triage; wymaga kompletnych źródeł telemetrii i CMDB. **Failure modes:** autonomiczne zmiany przy błędnym modelu sieci; brak szczegółów integracji.
-Źródło: https://www.networkworld.com/article/4233313/solarwinds-launches-avior-ai-agents-to-automate-network-operations.html
+#### Jev jako sędzia: „counterfeit policy” obniża recall wykrywania prompt injection z 82,9% do 3,9% (Datadog)
+**Mechanizm:** polityka prepended do niezaufanej treści redefiniuje kategorie ataków jako nieszkodliwe; osadzona w edytowalnym polu profilu obniżyła ocenę ryzyka nieautoryzowanej edycji (LangChain tool-risk gating) z 0,893 do 0,290 (< progu 0,5). **Wpływ:** klasyfikator LLM jako bramka bezpieczeństwa jest podatny na wstrzyknięcie kontekstu. **Zalecenie:** twarda autoryzacja poza modelem; pola użytkownika dochodzące do klasyfikatora traktować jako powierzchnię ataku.
+Źródło: https://securitylabs.datadoghq.com/articles/jev-as-a-judge-how-counterfeit-policy-steers-jev/
 
-#### vLLM: push-based konektor NIXL dla disaggregated inference
-**Mechanizm:** koordynacja transferu KV po prefill przeniesiona poza ścieżkę krytyczną – lepsze TTFT i TPOT przy wysokim request rate. **Wpływ:** disaggregated prefill/decode staje się praktyczniejszy przy dużym QPS; zależy od jakości fabric (RDMA). **Failure modes:** dojrzałość konektora, zachowanie przy utracie węzła decode.
-Źródło: https://vllm.ai/blog/2026-10-14-nixl-push-connector
+#### Atlassian: OCSF security lakehouse na Databricks (44 mld zdarzeń/dzień)
+**Mechanizm:** schemat OCSF zaszyty w strukturach Go (walidacja w compile-time), agentowy workflow mapowania nie może wyemitować nieprawidłowych pól; pipeline canary-gated, samoobsługowy onboarding logów (2/3 danych w 2 miesiące vs 1/3 w rok). **Wpływ:** znormalizowane encje pozwoliły zastąpić alerty 1:1 klastrowanymi sygnałami ryzyka (500+ detekcji).
+Źródło: https://www.databricks.com/blog/reducing-noise-how-atlassian-built-ocsf-security-lakehouse-databricks
 
-#### Netflix: utrzymanie dużych jobów GPU przy awariach sprzętu
-**Mechanizm:** detekcja wadliwych GPU i sprzętu sieciowego, automatyczna remediacja niezdrowych maszyn, przeżycie treningu rozproszonego mimo awarii. **Wpływ:** wzorzec dla capacity planningu – bufor węzłów i automatyczny drain/replace skracają MTTR klastra. **Failure modes:** szczegóły progów w źródle.
-Źródło: https://netflixtechblog.com/reliable-gpu-compute-for-large-training-inference-jobs-d62b03a96d7a
+#### Cloudflare Gateway: akcja „Forward” (custom code na ruchu) i walidacja DLP
+**Zdarzenie:** Forward (public beta) uruchamia własny kod na ruchu webowym (strony uzasadnienia dostępu, modyfikacja żądań, alerty); custom functions dla polityk przed końcem roku; walidacja DLP sprawdza, czy wykryty poświadczenie jest aktywne. **Wpływ:** mniej własnych proxy; vendor lock-in w logice polityk SASE; redukcja false positive DLP.
+Źródło: https://blog.cloudflare.com/programmable-gateway-dlp/
 
-#### ClickHouse: 32 ms tail latency po bezczynności (TCP cwnd)
-**Mechanizm:** niebatchowane pakiety metadanych wyczerpywały okno congestion po jego resecie do initial po idle (wysokie RTT). Fix: batching na poziomie aplikacji, o połowę mniej segmentów. **Wpływ:** dotyczy każdej usługi request/response o małych odpowiedziach po idle; rozważyć `tcp_slow_start_after_idle=0` i batching. **Failure modes:** objaw widoczny tylko przy dużym RTT.
-Źródło: https://clickhouse.com/blog/chasing-32ms-tail-latency-clickhouse
+#### ASML: podaż narzędzi 2027–2028 poniżej popytu; Q3 – 113 systemów, 11,7 mld EUR
+**Zdarzenie:** plan +30% mocy na bazie 2026 (~65 low-NA EUV, ~130 DUV immersion), rozważane więcej na 2028; klienci chcą zamawiać na 2029–2030; guidance Q4 14,2–15,2 mld EUR. **Wpływ:** limit podaży litografii = sufit dla podaży akceleratorów/HBM do 2028; planowanie capacity (GPU lead times, ceny) pod stałą niedobór.
+Źródło: https://www.cnbc.com/2026/10/14/asml-3q-earnings-ai-demand-orders-capacity.html
 
-#### SemiAnalysis: ASML buduje narzędzie do hybrid bondingu D2W
-**Zdarzenie:** 27 rodzin patentowych (XII 2022–XI 2024); tool oparty na torze (SuperTrak) z niezależnymi holderami dla każdego die; przewaga ASML w alignment i kontroli cząstek. Pierwszy odbiorca: zaawansowana logika (TSMC SoIC 6 µm → 4,5 µm ok. 2029). SemiAnalysis: HBM nie przejdzie na D2W HB przed 2029. **Wpływ:** negatywne dla Besi (logika to większość jego HB); wpływ na dostępność zaawansowanego packagingu GPU w horyzoncie 2028+. **Failure modes:** ASML niczego nie ogłosił; wyzwania: metrologia feed-forward, czystość pętli; analiza częściowo za paywallem.
-Źródło: https://newsletter.semianalysis.com/p/asml-is-building-a-hybrid-bonding
+#### AWS: laboratorium sieciowe (ServeTheHome)
+**Fakty:** przełączniki 3,2–102,4 Tbps (porty 1,6T OSFP jeszcze nie w wolumenie), 12,8 Tbps z 16 FPGA szyfrującymi każdy port, dedykowana sieć czasu referencjonowana satelitarnie, DWDM 64 λ, światłowód hollow-core ~33% niższa latencja. **Wpływ:** wskazuje kierunek hyperscalerów (szyfrowanie na porcie, precyzyjny czas, niska latencja) – benchmark dla własnych wymagań fabric.
+Źródło: https://www.servethehome.com/inside-the-secretive-aws-networking-lab/
 
-#### Anthropic: przychód Q3 +45% q/q do 16,8 mld USD; IPO
-**Zdarzenie:** wg TLDR/CNBC-relacji: Anthropic poinformował inwestorów o 16,8 mld USD w Q3; rozważana wycena IPO do 2 bln USD, notowania możliwe od listopada. **Wpływ:** sygnał popytu na inferencję i compute (długoterminowe kontrakty capacity); ryzyko koncentracji dostawców. **Failure modes:** dane z drugiej ręki, bez potwierdzenia pierwotnego.
-Źródło: https://links.tldrnewsletter.com/gxJBnd
+#### Ayar Labs + GUC: symulacja CPO 3 kW – tylko chłodzenie cieczą trzyma spec
+**Mechanizm:** pakiet 105×140 mm: 2 XPU, 8 HBM4, 8 silników TeraPHY, >100 Tbps optycznie, >3 kW; radiator powietrzny (5–6 m/s) nie spełnia spec, cold plate z impingementem 4,5 L/min utrzymuje silniki optyczne <100°C. **Ograniczenie:** statyczne założenia mocy; symulacja dynamiczna dopiero planowana. **Wpływ:** CPO wymusza DLC w racku.
+Źródło: https://semiengineering.com/thermal-co-simulation-testing-of-co-packaged-optics/
 
-#### Claude: tracing OpenTelemetry (GenAI semantic conventions) dla Managed Agents, Messages API i SDK
-**Wpływ:** agent traces trafiają do dowolnego backendu OTLP – ujednolicenie obserwowalności multi-provider; kontrola kosztów i debugowanie pętli agentów. **Failure modes:** payloady w spanach (PII/sekrety) – redakcja przed eksportem.
-Źródło: https://claude.com/resources/articles/agent-observability-on-the-claude-platform
+#### Meta Muse Spark Open: 816B MoE (42B aktywnych), kontekst 1M, open-weight
+**Fakty:** wejście tekst/obraz/wideo/audio, wyjście tekst; benchmark Meta na dwóch Mac Studio M5 Ultra (MLX), konfiguracja pamięci nieznana. **Wpływ:** lokalny inference modelu klasy frontier bez GPU DC; ograniczenia: throughput i współbieżność na unified memory. Vercel AI Gateway Index: open-weight 71,5% tokenów, 23% wydatków; prawie 1/3 zespołów zmieniła główny lab we wrześniu – niski koszt zmiany dostawcy.
+Źródła: https://research.meta.ai/blog/muse-spark-open ; https://vercel.com/blog/ai-gateway-production-index-october-2026
+
+#### Microsoft MAI-Base-2 (2,8T MoE, 80B aktywnych) i Nvidia Nemotron 3.5 Super VL
+**Fakty:** Microsoft opisuje stack pretrainingu i plan udostępnienia modeli trenowanych wewnętrznie przez Foundry; Nvidia: Nemotron 3.5 Super VL (mniej tokenów wyjściowych niż poprzednik), Bolt 74B-A9B oraz wagi NVFP4 (near-lossless). **Wpływ:** NVFP4 obniża koszt pamięci/inference na Blackwell (lock-in sprzętowy); Microsoft ogranicza zależność od zewnętrznych labów.
+Źródła: https://microsoft.ai/news/frontier-pre-training-at-microsoft-ai/ ; https://developer.nvidia.com/blog/nvidia-nemotron-3-5-super-vl-powers-specialized-agents-with-multimodal-reasoning/
+
+#### CoreWeave: CDS na poziomie distress, ponad 51 mld USD zobowiązań
+**Fakty:** rosnące rentowności długu i spread 5-letnich CDS; popyt niekwestionowany, ale cash flow musi nadążyć za capex. **Wpływ:** ryzyko kontrahenta dla klientów z długoterminowymi rezerwacjami GPU; wzorzec do oceny neocloudów (także europejskich) – klauzule SLA/exit i dywersyfikacja.
+Źródło: https://www.cnbc.com/2026/10/15/coreweave-credit-default-swaps-hit-distress-levels-as-investors-sour-on-ai-debt.html
 
 #### Drobne (krótko)
-Firefox Enterprise: centralne polityki, self-hostowana konsola, start w 4 krajach EU (https://www.computerworld.com/article/4234892/firefox-takes-aim-at-the-enterprise-browser-market.html). DE-CIX Frankfurt rekord 21,47 Tbps przy Champions League (https://www.computerweekly.com/news/366652212/Internet-traffic-records-topple-as-Champions-League-returns). Badanie zlecone przez lobby US: suwerenność chmurowa EU = 115 mld EUR kosztów/10 lat, scenariusze modelowe (https://assets.theregister.com/2026/10/14/20268/). Meta: wyciek z repo GitHub ~1500 osób, 99% to kod źródłowy, rotacja sekretów (https://links.tldrnewsletter.com/lMuzUk). Adobe Acrobat CVE-2026-81983 – integer overflow/OOB write, poprawka APSB26-141 (https://remedio.io/blog/cve-2026-81983-integer-overflow-vulnerability-enables-out-of-bounds-write-in-adobe-acrobat). Pominięto: GTA VI, Netflix layoffs, produkty konsumenckie, sponsorowane.
+Perplexity open-source SPACE (sandbox agentów): https://www.perplexity.ai/hub/blog/open-sourcing-space · Apple „Minions” – pula wolnych Maców jako inference (tylko wewnętrznie): https://www.computerworld.com/article/4235901/apples-minions-tech-turns-idle-macs-into-an-ai-data-center.html · Passkey Index 2026: 36% udanych logowań, 93% sukcesu vs 78% MFA: https://fidoalliance.org/passkey-index-2026/ · Arm vs Qualcomm: naruszenie licencji, odszkodowanie 2 USD (licencja do 2033): https://links.tldrnewsletter.com/DCTT1P · Solidigm/SK Hynix Dalian – zgoda na eksport narzędzi w zamian za fabrykę NAND w USA: https://techcrunch.com/2026/10/15/sk-hynix-bargains-for-chip-equipment-exports-to-its-china-facility-in-return-for-building-a-factory-in-us · ITRES Labs: odtworzenie badań nad exploitacją jądra Windows z pomocą LLM w ~24 h: https://labs.itresit.es/2026/10/15/copycats-at-machine-speed-reproducing-frontier-windows-kernel-exploitation-research/
