@@ -51,3 +51,11 @@
 
 #### Pominięte (IGNORED)
 Venture Street (rynki vertical AI) – poza profilem infrastrukturalnym. Z pozostałych: konsumenckie/naukowe/HR (Apple HomeView, kolejna dyskusja o matematyce, Tesla Roadster, NASA Roman).
+
+#### Cloudflare: koszt inferencji code review −68% ($2,43 → $0,77 na review)
+**Mechanizm:** największa oszczędność z audytu tego, co faktycznie trafia do dostawcy w pierwszym requeście sesji, i takiego uporządkowania wiadomości, by prefiks był jak najbardziej stabilny między commitami, MR i repozytoriami – czyli wyższy hit rate prompt cache. **Wpływ:** przy inferencji agentowej koszt wyznacza stabilność prefiksu (kolejność, brak dynamicznych pól na początku), nie sam model; mierzyć cache-read per pierwszy request sesji i jakość wyników per poziom effort. **Failure modes:** zmiana kolejności lub timestamp w prefiksie po cichu zeruje cache; oszczędność bez monitoringu jakości może obniżyć recall review.
+Źródło: https://blog.cloudflare.com/obsessive-inference-optimization
+
+#### Python 3.15.0
+Lazy imports, wbudowane `frozendict` i `sentinel`, szybszy JIT, pliki konfiguracji startu pakietów. **Wpływ:** lazy imports skraca cold start CLI/serverless; JIT wymaga testów regresji na workloadach numerycznych przed migracją obrazów bazowych.
+Źródło: https://hugovk.dev/blog/2026/releasing-python-3-15-0/
