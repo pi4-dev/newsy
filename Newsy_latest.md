@@ -1,101 +1,106 @@
-# Newsy — 2026-10-21
+# Newsy — 2026-10-22
 
-**Okno przyrostowe:** od raportu 2026-10-20 do 2026-10-21 07:28 CEST.
-**Uwaga:** WWW/RSS nie zwróciły nowych, datowanych pozycji z okna (wyniki starsze lub bez daty); materiał z newsletterów TLDR (etykieta NEWSY) z 20.10 po południu. Pominięto pozycje już ujęte 20.10 (OpenCode, Cloudflare, Python 3.15, DeepSeek V4.1, Tenstorrent/CXMT, SemiAnalysis DC 2027) oraz vLLM push-based KV (16.10).
+**Okno przyrostowe:** od raportu 2026-10-21 (07:28 CEST) do 2026-10-22 07:28 CEST.
+**Uwaga:** Sekcje "Raport euro neocloud" i "AI for networking" pominięto — po weryfikacji brak nowych, wiarygodnych i datowanych pozycji wykraczających poza materiał z 21.10 (Nscale/Anthropic, SRv6/gNMI to głównie starsze dokumenty bez nowej treści). Materiał: WWW/WebSearch, NVIDIA Developer Blog RSS, SemiAnalysis, newslettery TLDR (etykieta NEWSY, 21.10).
 
 ## Raport technologiczny
 
-### Technologia
-
-#### PwnEscape: guest-to-host KVM escape przez checksum metadata IPv4 (CVE-2026-99999)
-**Mechanizm:** nie-zaufany guest modyfikuje bajty nagłówka IPv4 po walidacji w kernelu hosta; kontrolowane metadane checksum zmieniają długość nagłówka, kernel kopiuje 32 B poza logiczne dane pakietu i wysyła je jako opcje IP. W labie KVM: selektywne 64-bajtowe zapisy w pamięci kernela hosta i wykonanie helpera jako root hosta. Fix upstream: commit 6785011f8b16 (walidacja `checksum_start` przed uzupełnieniem sumy w pięciu konsumentach IPv4).
-**Znaczenie:** klasa multi-tenant (VM, neocloudy, prywatne chmury na KVM) – granica gość/host przez ścieżkę sieciową (virtio-net/tap/bridge). Priorytet: kernele hostów, nie gości; sprawdzić backporty w dystrybucjach. Failure mode: patch kernela wymaga rebootu/live-migracji floty.
-Źródło: https://pwn.ai/blog/pwnescape
-
-#### Cisco Secure Email Gateway: CVE-2026-76519 (CVSS 9.8) exploitowana – terminy CISA i BSI
-**Nowy element względem 17.10:** path traversal przy włączonym File Reputation (spreparowane załączniki, zapis plików i komendy jako root bez uwierzytelnienia); CISA i BSI wydały ostrzeżenia z narzuconymi terminami patchowania.
-**Znaczenie:** SEG stoi na krawędzi i przetwarza niezaufane dane przed filtrami – kompromitacja = pivot do sieci wewnętrznej; do czasu patcha rozważyć wyłączenie File Reputation i izolację zarządzania.
-Źródło: https://diesec.com/2026/10/cisco-secure-email-gateway-zero-day-cve-2026-76519/
-
-#### Symfony ReDoS (CVE-2026-108082): jedno żądanie = do 12,7 s CPU
-**Mechanizm:** spreparowany nagłówek `Cache-Control` powoduje catastrophic backtracking w `HeaderUtils::split()`; parsowanie przed routingiem i auth (Laravel parsuje 3×). Cztery sklejone nagłówki 8 KB wystarczają do timeoutów. Dotyczy Symfony 4.1 → poprawki z X 2026 (Laravel, Drupal, PrestaShop, Shopware).
-**Znaczenie:** niski koszt DoS niewymagający auth; WAF z limitem długości nagłówków i rate limiting nie zastąpią patcha, bo pojedyncze żądanie jest kosztowne. Capacity planning: worker pool PHP-FPM wyczerpuje się liniowo z liczbą żądań.
-Źródło: https://r3verii.github.io/cve/2026/10/16/symfony-cache-control-redos.html
-
-#### Plex Media Server: łańcuch 4 CVE exploitowany in the wild (miner + proxy)
-**Fakty:** honeypot z Plex 1.43.2 – eksploatacja 17.10 (CVE-2026-96652/96654/96655/96656 → RCE), payload: cryptominer i komponent proxy. IOC: 45.194.92[.]222, 91.92.40[.]202, 176.65.139[.]228; host payloadu 217.60.194[.]116.
-**Znaczenie:** instancje wystawione do internetu w sieciach domowych/SOHO jako węzły residential proxy; blokada IOC na egress i segmentacja.
-Źródło: https://www.boredhackerblog.info/2026/10/plex-vulnerabilities-being-exploited-in.html
-
 ### Biznes
 
-#### Staples: przejęcie sesji agentów przez heap dump usługi „Nexus" → 4 630 kart podarunkowych
-**Fakty (404 Media):** aktor z Chin dotarł do usługi uznawanej za wewnętrzną, wykonał heap dumpy i przejął sesje zalogowanych konsultantów; wydano karty o wartości >5 mln USD w obrocie, ok. 425 tys. USD w 4 630 kartach.
-**Znaczenie:** tokeny sesji w pamięci usług debug/actuator-like; endpointy diagnostyczne traktować jak produkcyjne wejścia.
-Źródło: https://www.404media.co/how-a-massive-chinese-crime-ring-hacked-staples-to-steal-millions/
+#### Anthropic S-1: strata netto >80 mld USD w H1 2026, deklarowane do 750 mld USD na compute
+**Fakty:** Z ujawnionego projektu prospektu IPO Anthropic wynika strata netto ponad 80 mld USD w pierwszej połowie 2026 przy szybkim wzroście przychodów; firma sygnalizuje, że w najbliższych latach może wydać do 750 mld USD na dodatkową pojemność obliczeniową, oraz wskazuje niepewny dostęp do compute jako czynnik ryzyka.
+**Znaczenie:** Skala deklarowanego CAPEX wielokrotnie przewyższa obecne przychody – bezpośrednio wiąże się z ryzykiem kontraktów typu Nscale (sekcja Ryzyka). Dla architektów: kontrahent tej wielkości, zależny od rynku kapitałowego przed IPO, to koncentracja ryzyka dostawcy przy multi-year compute commitments.
+Źródło: https://techcrunch.com/2026/10/19/anthropic-s-1-shows-red-hot-growth-risks-and-massive-computing-costs/
+
+#### DHS wprowadza zakaz zakupów od DeepSeek dla agencji federalnych USA
+**Fakty:** Departament Bezpieczeństwa Wewnętrznego USA ogłosił zakaz procurementu produktów DeepSeek dla agencji cywilnych, powołując się na ryzyko przetwarzania/przechowywania danych w Chinach; agencje mają 60 dni na wnioski o wyjątki.
+**Znaczenie:** Pierwszy formalny zakaz na poziomie federalnym USA wobec konkretnego chińskiego modelu/dostawcy AI – wzorzec do powtórzenia w innych jurysdykcjach i sektorach regulowanych; firmy z kontraktami rządowymi USA powinny zweryfikować łańcuch dostaw modeli/API.
+Źródło: https://cyberscoop.com/dhs-bans-deepseek-federal-agencies/
+
+#### Microsoft: "modele frontier nie mogą być traktowane jako zaufane" – agenci AI jako insider threat
+**Fakty:** Microsoft wprowadził Guardian Agents i wykrywanie agentów w Microsoft Defender; CEO Satya Nadella i szefowa bezpieczeństwa Hayete Gallot wprost porównują autonomiczne agenty LLM do insider threat, argumentując za rozdzieleniem "dostawcy inteligencji" od "autorytetu decyzyjnego" poprzez niezależny monitoring.
+**Znaczenie:** Duży vendor publicznie kwestionuje zaufanie do własnych modeli frontier w kontekście enterprise – wzmacnia argument za observability/guardrails jako warstwą obowiązkową, nie opcjonalną, przy wdrożeniach agentowych; koresponduje z prognozą Gartnera (40% ograniczeń agentów do 2027, już cytowaną 20.10).
+Źródło: https://techcrunch.com/2026/10/19/microsoft-says-ai-agents-are-like-insider-threats-as-frontier-models-cant-be-trusted/
+
+### Technologia
+
+#### BeyondTrust Remote Support: zero-day CVE-2026-102764 (CVSS 9.3) exploitowany od sierpnia przez grupę powiązaną z Chinami
+**Fakty:** Auth bypass + arbitrary file upload w BeyondTrust Remote Support ≤26.2.3 pozwala nieuwierzytelnionym atakującym na eskalację do root i dostęp do credential vaults. Grupa Armory Castle (dawniej UNC5221, atrybucja Mandiant) wykorzystuje podatność od końca sierpnia do wdrażania webshelli (BARECLAW). Patch (BT26-05) wydany 8.10 dla SaaS (patched 9.10), self-hosted wymaga manualnej aktualizacji. CISA i Canadian Centre for Cyber Security wydały ostrzeżenia.
+**Znaczenie:** Kolejny (po Cisco SEG 17-21.10) przypadek krytycznego zero-day w remote-access/support appliance exploitowanego przez aktora państwowego miesiącami przed patchem – self-hosted PRA/Remote Support traktować jako już potencjalnie skompromitowane do czasu forensic review; ograniczyć dostęp zewnętrzny do appliance'ów.
+Źródła: https://www.bleepingcomputer.com/news/security/beyondtrust-patches-zero-day-exploited-in-attacks-since-august , https://www.csoonline.com/article/4236421/beyondtrust-zero-day-tied-to-chinese-spies-puts-remote-support-users-on-alert.html
+
+#### 8 skompromitowanych certyfikatów pośrednich TLS (eMudhra) – alarm w branży PKI
+**Fakty:** Odkryto osiem defektywnych certyfikatów pośrednich wydanych przez indyjski CA eMudhra Limited; wg badających defekt był "na poziomie uznawanym za niemożliwy".
+**Znaczenie:** Naruszenie łańcucha zaufania CA ma potencjalny wpływ systemowy (MITM, podpisywanie malware); do weryfikacji: czy przeglądarki/root store programs (Chrome, Mozilla) podjęły distrust eMudhra; sprawdzić własne store'y trust anchors.
+Źródło: https://arstechnica.com/security/2026/10/the-internet-goes-on-high-alert-after-discovery-of-8-compromised-tls-certs/
+
+#### Google Cloud: awaria zasilania w londyńskiej AZ przerywa Cloud Run, GKE, managed Kafka
+**Fakty:** Power failure w londyńskiej availability zone Google Cloud przerwał działanie Cloud Run, GKE i managed Kafka, z efektem na usługi bankowe, dostawcze i nieruchomości.
+**Znaczenie:** Kolejny przykład (po wcześniejszych awariach hyperscalerów) kaskadowego wpływu pojedynczej AZ na niepowiązane branże – potwierdza potrzebę multi-AZ/multi-region dla usług krytycznych i runbooków failover niezależnych od jednego dostawcy zasilania.
+Źródło: https://www.theregister.com/paas-and-iaas/2026/10/20/google-cloud-says-a-power-event-caused-todays-outage/5304160
+
+#### Cairn: w pełni zautomatyzowane agentowe operacje intrusion – 100+ skompromitowanych celów (John Deere, SharkNinja, Cummins)
+**Fakty:** NorForge zidentyfikował >20 publicznie eksponowanych paneli Cairn; jeden chiński klaster uruchomił >1100 projektów ataków (RCE, webshelle, SQLi, auth bypass) na e-commerce/płatności w USA/JP/AU/CA. Odnotowany przypadek: atakujący dostarczył instrukcje w <100 znakach chińskich, autonomiczne agenty przełamały >100 serwisów w ok. 23h. Panele ujawniły cele, credentials, API keys, instrukcje agentów (Trufflehog: 11% zweryfikowanych sekretów aktywnych).
+**Znaczenie:** Pierwszy dobrze udokumentowany przypadek masowej, zautomatyzowanej ofensywy z niskim nakładem operatora (natural-language prompt → multi-target breach) – przesuwa próg wejścia dla ofensywnych operacji; segmentacja i monitoring reagujący na anomalny, szybki ruch poprzeczny zyskują priorytet.
+Źródło: https://www.theverge.com/ai-artificial-intelligence/1013643/ai-agents-hack-john-deere-shark-ninja-cummins
 
 ## Raport AI-ML
 
+### Biznes
+
+#### Huawei–DeepSeek: symbioza sprzętowo-programowa – Ascend 950PR dogania H100 w utylizacji FLOPs
+**Analiza (SemiAnalysis):** DeepSeek wydał wsparcie Ascend dla 6 repozytoriów (TileLang, DeepGEMM, DeepEP, TileKernels, FlashMLA, DeepSelect); mikrobenchmarki: Ascend 950PR osiąga mediana 41,5% attainable FLOPs na GEMM compute-bound vs 46,8% dla H100 (częściowo z powodu power/clock limitów H100), a bandwidth utilization HBM przewyższa H100 przy małych transferach. Cytat Liang Wenfenga (V2026): "4 karty Huawei = 1 Nvidia, Huawei ~2 lata za rynkiem sprzętowo" – ale gap softwarowy zamyka się szybciej niż sprzętowy. DeepSeek dostarcza Huawei modele/workloady (dzień-0 optymalizacje dla V4/V4.1), Huawei dostarcza sprzęt i natywny stack (CANN, URMA/HCCL). Ekosystem nadal niedojrzały poza supernode'ami: brak DeepGEMM na x86, zależności od ARM-only bibliotek (memfabric_hybrid), brak CI NPU+x86.
+**Znaczenie:** Dla capacity planning poza USA/EU – chiński ekosystem akceleratorów (Huawei Ascend) zyskuje wiarygodny, współdzielony software stack z frontier labem; obniża to efektywny vendor lock-in Nvidii w Chinach i regionach objętych eksport-control, ale pozostaje wąski (ARM/supernode-centric), nie "drop-in" dla ogólnego x86 datacenter.
+Źródło: https://newsletter.semianalysis.com/p/huawei-deepseek
+
 ### Technologia
 
-#### Meta Prometheus: klaster ~GW, droga do ok. 1 mln GPU, zamknięta pętla chłodzenia cieczą
-**Analiza:** opis inżynierski infrastruktury trenującej rodzinę Muse; skala skokowa (GW na jeden klaster) wymusza liquid cooling w obiegu zamkniętym (mniejsze zużycie wody, wyższe ΔT), a przy ~1 mln GPU kluczowe stają się fault domain'y i szybka detekcja uszkodzonych węzłów. Vendor lock-in: własny stack Meta, ale wzorce (topologia, cooling) są odtwarzalne dla neocloudów.
-Źródło: https://engineering.fb.com/2026/10/19/data-center-engineering/inside-prometheus-meta-gigawatt-scale-supercluster/
+#### DeepSeek open-sources DeepInfer: framework produkcyjny – 155 bln tokenów/dzień/klaster, 38 USD przychodu/GPU-h
+**Analiza:** DeepInfer to silnik inferencji zasilający produkcję DeepSeek w skali (wersja offline, bez PD-disaggregation/load-balancing z pełnej usługi – wymaga doinstrumentowania przez użytkownika). Działa na Nvidia SM100 i Huawei Ascend 950. Opublikowane metryki ekonomiczne (155T tok/dzień/klaster, 38 USD/GPU-h) to pierwszy publiczny, konkretny benchmark rentowności inferencji dużego dostawcy – użyteczny punkt odniesienia dla kalkulacji $/GPU-h przy capacity planning (patrz też sekcja Ryzyka, "EKONOMIKA").
+Źródło: https://github.com/deepseek-ai/DeepInfer
 
-#### TorchNeuron: natywny backend PyTorch dla AWS Trainium (public beta, Apache 2.0)
-**Analiza:** eager execution bez konieczności przepisywania kodu pod Neuron SDK/XLA obniża koszt migracji z CUDA i osłabia lock-in na Nvidię; ryzyko: parytet operatorów i wydajność kernel'i względem torch.compile na GPU – beta, brak danych throughput/$. Warto testować na inferencji o stałych kształtach.
-Źródło: https://pytorch.org/blog/introducing-torchneuron-native-pytorch-backend-for-aws-trainium/
+#### TorchTPU: natywny backend PyTorch dla Google TPU (Google + Meta)
+**Analiza:** Analogicznie do TorchNeuron (AWS, opisany 21.10), TorchTPU dodaje eager execution i integrację torch.compile dla TPU bez przepisywania kodu pod XLA. Razem z TorchNeuron tworzy wzorzec: duzi cloud-providerzy inwestują w natywne, kompatybilne z PyTorch backendy, by obniżyć bariery migracji z CUDA. Ryzyko identyczne jak przy TorchNeuron: parytet operatorów/kernel performance względem dojrzałego stacku CUDA nieznany na starcie; testować na obciążeniach o stabilnych shape'ach przed produkcją.
+Źródło: https://pytorch.org/blog/introducing-torchtpu/
 
-#### Mercury 3 (dyfuzyjny LLM, >1 000 tok/s) oraz MiniMax M3.1 Flash (−70% kosztu, ~3× szybszy inferencja)
-**Analiza:** deklaracje vendorów (benchmarki nie zweryfikowane). Dyfuzja tekstu przesuwa profil z memory-bound (dekodowanie autoregresyjne) ku compute-bound z równoległym generowaniem – inna charakterystyka batchingu i KV niż w vLLM. MiniMax: wagi później; do tego czasu tylko API.
-Źródła: https://www.inceptionlabs.ai/blog/introducing-mercury-3 , https://www.minimax.io/blog/minimax-m31f
+#### NVIDIA Vera: 1024-bit LPDDR5X-9600 (1,228 TB/s), NVLink C2C 780 GB/s, ale cross-socket latency ~660 ns
+**Analiza (Chips and Cheese):** Teardown potwierdza silny single-socket memory-bound throughput (ok. 20% przewagi nad Graviton 5 w testach DRAM-bound SPEC2026) przy słabszej wydajności cross-socket/core-to-core względem AMD/Amazon. Cache L3 164 MB, moduły pamięci field-serviceable (SOCAMM2). Wniosek dla capacity planning: Vera dobry fit dla workloadów jednosocketowych memory-bound; dla silnie współbieżnych, cross-socket NUMA workloadów sprawdzić realny impact 660 ns latency przed migracją.
+Źródło: https://chipsandcheese.com/p/nvidia-veras-system-architecture
 
-#### Lenovo AI Express (z Nvidia): serwery AI Blackwell w ~15 dni roboczych
-**Analiza:** trzy pre-walidowane konfiguracje, limity ilościowe i kwalifikacja klientów – sygnał, że lead time'y serwerów AI nadal są barierą dla enterprise; zakup gotowych SKU upraszcza capacity planning kosztem elastyczności.
-Źródło: https://www.computerweekly.com/news/366652396/Lenovos-AI-Express-targets-enterprises-waiting-for-AI-servers
-
-#### Obserwowalność GPU cloud: model topologii fizycznej powiązany z workloadami
-**Analiza:** korelacja telemetrii sprzętu (NVLink/IB/PCIe, termika) z jobami umożliwia wykrywanie fragmentacji pojemności i degradacji pojedynczych linków; narzędzia per-subsystem tego nie pokazują. Przydatne przy SLA neocloudów.
-Źródło: https://hackernoon.com/why-gpu-cloud-observability-is-harder-than-it-looks
-
-## Raport euro neocloud
-
-### Nscale
-#### Microsoft wypowiada umowę na pojemność w planowanym obiekcie Loughton (UK); Nscale rozmawia o kolejnych 45 mld USD z Anthropic
-**Fakty:** wg cloudcomputing-news Microsoft zerwał umowę na pojemność w Loughton z powodu opóźnień zasilania, które mogą sięgnąć lat 2030+; Nscale deklaruje kontynuację inwestycji i brak wpływu na pozostałe kontrakty z Microsoft. Wg Bloomberg/TechCrunch (19.10) Nscale i Anthropic są bliskie kolejnego kontraktu ok. 45 mld USD, ~miesiąc po poprzednim na tę samą kwotę. Obie spółki zmierzają do IPO; inwestorzy kwestionują proponowaną wycenę Nscale 30 mld USD. Wcześniej (IX 2026): zamknięte ok. 3 mld USD finansowania dla Ward County (TX) i Madison (NC); kontrakt z Figure z początkową alokacją 3,5 mld USD.
-**Ocena analityczna.** Sygnały ostrzegawcze: (1) anchor tenant wycofuje się z lokalizacji z powodu przyłącza energetycznego, nie popytu – ryzyko wykonania w UK; (2) koncentracja przychodów w kilku kontrahentach (Microsoft, Anthropic, Figure); (3) presja na wycenę przed IPO; (4) dwa kontrakty po 45 mld w miesiąc bez ujawnionych szczegółów finansowania (wg TechCrunch). **Ocena ryzyka: Wysokie** – niepotwierdzone (Bloomberg, anonimowe źródła) kontrakty plus opóźnienia energii przy kapitale zależnym od IPO.
-Linki: https://www.cloudcomputing-news.net/news/microsoft-nscale-uk-ai-data-centre/ , https://techcrunch.com/2026/10/19/nscale-and-anthropic-are-reportedly-in-talks-for-yet-another-45-billion-compute-deal/ , https://www.storagenewsletter.com/2026/09/14/summary-of-week-37-september-7-11-2026/
+#### NVIDIA DSX POD i OpenShell: standaryzacja wdrożeń AI factory i governance agentów w runtime
+**Analiza:** NVIDIA DSX POD – pre-zwalidowana architektura referencyjna celująca w szybsze i bardziej przewidywalne uzyskanie "productive AI capacity" (odpowiedź na problem lead-time, patrz Lenovo AI Express z 21.10). OpenShell Reference Architecture i Sentry – runtime governance/security dla agentów AI (podobny motyw co Microsoft Guardian Agents, sekcja Raport technologiczny) – trend: dostawcy infrastruktury AI dodają natywne warstwy kontroli uprawnień agentów jako standardowy element stosu, nie dodatek.
+Źródła: https://developer.nvidia.com/blog/achieve-productive-ai-capacity-faster-and-more-predictably-with-nvidia-dsx-pod/ , https://developer.nvidia.com/blog/how-nvidia-openshell-reference-architecture-secures-and-governs-ai-agent-workloads-at-scale/ , https://developer.nvidia.com/blog/inside-nvidia-sentry-secure-ai-agents-at-runtime/
 
 ## Raport Ryzyka rynku AI/GPU
 
-#### Moc przyłączeniowa jako realne wąskie gardło: Microsoft/Loughton
-**Analiza:** INFRASTRUKTURA – kontrakt zerwany przy zakontraktowanej, lecz niedostarczalnej mocy; „rozpoczęte vs oddane DC" rozjeżdża się, gdy kolejka przyłączeń sięga 2030+. Wpływ na neocloudy: opóźniony revenue start przy już ponoszonych kosztach finansowania. Powiązane z 20.10 (SemiAnalysis: +50 GW w 2027) – założenia podażowe zależą od prefab i BTM power.
-Źródło: https://www.cloudcomputing-news.net/news/microsoft-nscale-uk-ai-data-centre/
+#### Anthropic S-1: strata >80 mld USD (H1 2026) vs deklaracja 750 mld USD CAPEX na compute
+**Analiza:** FINANSE – pierwszy publicznie znany, konkretny zestaw liczb (z projektu prospektu IPO) łączący ogromną stratę operacyjną z deklaracją dalszej, znacznie większej ekspansji CAPEX. Ryzyko: skala przyszłych zobowiązań compute (w tym wobec Nscale, ~90 mld USD łącznie w dwóch kontraktach od sierpnia) zależy od sukcesu IPO i rynku kapitałowego – pokrywa się z ryzykiem opisanym 21.10 (pętla finansowania Nscale↔Anthropic).
+Źródło: https://techcrunch.com/2026/10/19/anthropic-s-1-shows-red-hot-growth-risks-and-massive-computing-costs/
 
-#### Pętla finansowania: Nscale ↔ Anthropic (IPO obu stron)
-**Analiza:** FINANSE/POPYT – powtarzane kontrakty rzędu 45 mld USD zależne od wycen IPO; jeśli wycena Nscale zostanie obcięta, rośnie koszt kapitału pod budowy. Kontrakty niepotwierdzone oficjalnie.
-Źródło: https://techcrunch.com/2026/10/19/nscale-and-anthropic-are-reportedly-in-talks-for-yet-another-45-billion-compute-deal/
+#### Ekonomika inferencji: DeepSeek publikuje 38 USD przychodu/GPU-h jako punkt odniesienia rynkowy
+**Analiza:** EKONOMIKA – jawne ujawnienie metryki przychód/GPU-h przez duży operator inferencji ustanawia punkt odniesienia, wobec którego moża oceniać deklaracje neocloudów o utylizacji i marżach; niska przejrzystość innych dostawców w tym zakresie utrudnia porównania, ale brak porównywalnego publicznego ujawnienia przez zachodnich neocloudów to sam w sobie sygnał asymetrii informacyjnej dla inwestorów.
+Źródło: https://github.com/deepseek-ai/DeepInfer
 
-#### Nebius: 5 mld USD senior convertible notes, kontraktowana moc >3,5 GW (cel >4 GW do końca 2026)
-**Analiza:** FINANSE – wg newsletterowych nagłówków i MarketScreener; przychód Q2 582,3 mln USD, EBITDA adj. 236,2 mln USD. Finansowanie przez convertible ogranicza koszt gotówkowy, ale rozwadnia; kontraktowane GW wielokrotnie przewyższają przychód bieżący, więc ryzyko to harmonogram dostaw i finansowania.
-Źródło: https://www.boerse-express.com/news/articles/nebius-aktie-nscale-deal-treibt-ki-nachfrage-945274
+#### "The Gap Between GPUs and Compute": finansowanie, moc i hardware jako realne ograniczenia podaży, nie dostępność chipów
+**Analiza:** INFRASTRUKTURA/FINANSE – operatorzy AI infra mają praktycznie nieograniczony popyt, ale finansowanie, dostępność energii, wdrożenie sprzętu i opór społeczny (permitting) ograniczają realną podaż; starsze GPU zachowują wartość dłużej niż oczekiwano (sygnał niedoboru, nie przesytu), a zdolność do zabezpieczenia kapitału i niezawodnej eksploatacji klastrów staje się przewagą konkurencyjną odrębną od samego dostępu do krzemu. Koresponduje z tematem Microsoft/Loughton (21.10) i +50GW SemiAnalysis (20.10).
+Źródło: (TLDR AI, link skrócony – oryginał niezweryfikowany bezpośrednio, traktować jako wskazanie tematu, nie cytat źródła pierwotnego)
 
 ## Newsletters summary
-Przetworzone: TLDR IT, TLDR AI, TLDR InfoSec z 20.10 (pozycje wyżej, wraz z Gartner: 40% przedsiębiorstw ograniczy lub zamknie agenty do 2027 z powodu luk governance – https://www.cio.com/article/4236549/the-agents-nobody-meant-to-build.html; OpenAI: GPT-6.1 Sol 86,6% na benchmarku migracji COBOL przy niskim effort vs 5,4% GPT-5.6 Sol – wynik vendora). Pominięte (IGNORED): Venture Street (GR Angel), The Business Engineering Body of Knowledge.
+Przetworzono 6 z 8 maili z etykietą NEWSY (21.10, TLDR IT/AI/InfoSec/Hardware) – kluczowe pozycje ujęte wyżej (Microsoft Guardian Agents, Google Cloud outage, BeyondTrust 0-day, Meta Muse leak, Cairn, DHS/DeepSeek ban, Anthropic S-1, DeepInfer, TorchTPU, Nvidia Vera) oraz 1 mail SemiAnalysis (Huawei-DeepSeek, ujęty w Raporcie AI-ML). Pominięte jako nieistotne dla profilu architekta infra (IGNORED): "The B2B LinkedIn Playbook" (Venture Street, marketing), "Put Some Brain in Your Thinking" (The Algorithmic Bridge, blog osobisty/lifestyle).
 
 ## Implikacje praktyczne
-1. Granica guest/host w multi-tenant: traktować CVE sieciowe kernela hosta (PwnEscape) jako zdarzenia klasy hypervisora – plan live-migracji floty i patchowania bez downtime'u.
-2. Kontrakty colo/neocloud: uzależniać od harmonogramu przyłączenia energii (klauzule wyjścia typu Microsoft/Loughton), nie od deklarowanych MW.
-3. Dywersyfikacja stosu akceleratorów: natywne backendy PyTorch (TorchNeuron) obniżają koszt migracji; budować warstwę abstrakcji modelu/API (multi-provider routing).
-4. Brzeg i poczta (SEG, appliance'y): zakładać cykliczne zero-day'e; architektura z segmentacją i brakiem trwałych poświadczeń na urządzeniach.
-5. Ekspozycja kontrahencka na neocloudy zależne od IPO: limity koncentracji i escrow/step-in rights dla pojemności GPU.
+1. Appliance'y zdalnego dostępu/supportu (BeyondTrust, Cisco SEG) jako powtarzający się wektor APT – wymusić izolację zarządzania i brak trwałych poświadczeń, traktować self-hosted jako "compromise until proven otherwise" do czasu forensic review po każdym zero-day.
+2. Koncentracja ryzyka kontrahenta: ekspozycja na Anthropic/Nscale (łącznie ~90 mld USD w kontraktach od VIII.2026) przy stracie Anthropic >80 mld USD w H1 i IPO obu stron w toku – limity koncentracji, step-in rights przy długoterminowych rezerwacjach GPU.
+3. Governance agentów AI jako wymóg architektoniczny, nie opcja: Microsoft (Guardian Agents) i NVIDIA (OpenShell/Sentry) zbieżnie wprowadzają niezależny monitoring agentów – budować observability/guardrails jako warstwę obowiązkową przed produkcyjnym wdrożeniem agentowym.
+4. Dywersyfikacja ekosystemu akceleratorów: TorchNeuron + TorchTPU obniżają koszt migracji z CUDA; równolegle Huawei/DeepSeek zamykają software gap dla Ascend – warto utrzymywać warstwę abstrakcji modelu/runtime niezależną od pojedynczego vendora.
+5. PKI/trust anchors: incydent eMudhra wymaga przeglądu własnych root/intermediate store'ów i zależności od CA trzecich stron w pipeline'ach CI/CD i mTLS.
 
 ## Trend tygodnia
-Wąskim gardłem rozbudowy AI przesuwa się z dostępności GPU na energię i finansowanie. Zerwanie przez Microsoft umowy w Loughton z powodu opóźnień przyłącza pokazuje, że kontrakty na „zakontraktowane MW" nie równają się dostarczalnej mocy. Jednocześnie Nscale negocjuje kolejny kontrakt 45 mld USD, a wycena IPO budzi sprzeciw inwestorów, co czyni cykl finansowania zależnym od rynku kapitałowego. Po stronie technologii maleje koszt inferencji (dyfuzyjne LLM, FP4 KV, stabilne prefiksy cache), co zwiększa współbieżność na tym samym sprzęcie, ale nie rozwiązuje ograniczeń zasilania. W bezpieczeństwie dominują łańcuchy luk w infrastrukturze brzegowej i wirtualizacji (Cisco SEG, KVM), gdzie jedna podatność zamienia się w kompromitację tenantów lub sieci.
+Tydzień 21–22.10 domyka obraz z poprzednich dni: wąskie gardło przesuwa się z samego dostępu do GPU na finansowanie i energię, a nowe dane (S-1 Anthropic, kontrakty Nscale) kwantyfikują skalę tego ryzyka – straty i zobowiązania liczone w setkach miliardów USD, uzależnione od powodzenia IPO. Równolegle rośnie presja na governance autonomicznych agentów AI z dwóch stron: defensywnej (Microsoft, NVIDIA wprowadzają niezależny monitoring agentów jako standard) i ofensywnej (Cairn – udokumentowany przypadek masowej, zautomatyzowanej kompromitacji wielu celów przy minimalnym nakładzie operatora). W warstwie krzemowej Chiny demonstrują realne domykanie przewagi softwarowej (Huawei/DeepSeek), co przy eksport-control zmienia długoterminową kalkulację vendor lock-in. Na brzegu sieci i w zdalnym dostępie utrzymuje się cykl krytycznych zero-day w appliance'ach (BeyondTrust po Cisco SEG), exploitowanych miesiącami przed publicznym ujawnieniem. Dodatkowo incydent PKI (eMudhra) przypomina, że łańcuch zaufania pozostaje krytyczną, rzadko audytowaną zależnością.
 
 ## To obserwować
-1. Wycena i prospekt IPO Nscale oraz potwierdzenie (lub nie) drugiego kontraktu 45 mld USD z Anthropic.
-2. Kolejne wypowiedzenia/przesunięcia kontraktów colo z powodu przyłączy (UK, Irlandia, Nordyki).
-3. Parytet i benchmarki TorchNeuron na Trainium (throughput/$ vs GPU).
-4. Rentowność długu CoreWeave i spready CDS neocloudów oraz emisje convertible (Nebius).
-5. Poprawki kernelowe dla CVE-2026-99999 w dystrybucjach i tempo patchowania hostów KVM.
+1. Finalizacja/konkretne warunki drugiego kontraktu Nscale–Anthropic (45 mld USD) oraz harmonogram IPO obu spółek.
+2. Zakres wpływu zakazu DHS na DeepSeek – ewentualne rozszerzenie na inne agencje/jurysdykcje lub sektor prywatny regulowany.
+3. Tempo łatania self-hosted instancji BeyondTrust Remote Support oraz ewentualny wzrost skali exploitacji po publicznym ujawnieniu.
+4. Reakcja programów root store (Chrome, Mozilla) na incydent eMudhra – decyzje o distrust/ograniczeniu CA.
+5. Dojrzałość ekosystemu Ascend poza supernode'ami (x86 support, CI) jako wskaźnik realnej dostępności alternatywy dla Nvidii w Chinach.
