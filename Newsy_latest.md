@@ -1,90 +1,145 @@
-# Newsy — 2026-10-23
+# Newsy — 2026-10-24
 
-**Okno przyrostowe:** od raportu 2026-10-22 do 2026-10-23 07:28 CEST. Pominięto sekcje "euro neocloud" i "AI for networking" – brak nowych, wiarygodnych i datowanych pozycji. Źródła: WWW, NVIDIA Developer Blog RSS, newslettery TLDR (etykieta NEWSY, 22.10), Reuters.
+**Okno przyrostowe:** od raportu 2026-10-23 do 2026-10-24 07:28 CEST. Pominięto sekcje "euro neocloud" i "AI for networking" – brak nowych, wiarygodnych i datowanych pozycji. Źródła: newslettery (etykieta NEWSY: SemiAnalysis, TLDR AI/IT/InfoSec/Hardware/ogólny z 23.10), NVIDIA Developer Blog RSS, WWW.
 
 ## Raport technologiczny
 
 ### Technologia
 
-#### PHP: dwa krytyczne RCE (CVE-2026-109618, CVE-2026-109619, CVSS 9.2) – patch 8.5.12 / 8.4.27 / 8.3.36 / 8.2.35
-**Fakty:** CVE-2026-109618: uszkodzenie pamięci przy przekroczeniu `memory_limit` w nieodpowiednim momencie (częściowo zainicjowane struktury traktowane później jako poprawne); na Apache+mod_php wyzwalane nieuwierzytelnionym żądaniem przed kodem aplikacji, RCE zademonstrowane na domyślnej konfiguracji, na PHP-FPM przez ścieżki aplikacyjne. CVE-2026-109619: fatal error zostawia stan globalny wskazujący na pamięć z poprzedniego requestu → use-after-free na tym samym workerze, RCE pokazane na realnej aplikacji (mod_php). Identyfikatory CVE wyciekły 2 dni przed publikacją, a PoC (nagranie firmy security) krążył publicznie – PHP Foundation nie widziało funkcjonalnych exploitów w chwili wydania, ale TLDR raportuje wyłączenia serwisów rządowych, NSA zaleca natychmiastową aktualizację lub wyłączenie systemów, Cloudflare wdrożył reguły WAF. Podatności wykryte z użyciem AI (OpenAI GPT-5.6 Sol, niezależnie Wiz).
-**Znaczenie:** Worker-persistent state (mod_php, FPM) czyni skutki OOM/fatal error przenoszalnymi między requestami – sam WAF jest niewystarczający, bo wyzwalacz to zużycie pamięci, nie payload. Priorytet: inwentaryzacja obrazów kontenerowych z PHP (base images, CMS), restart workerów po patchu, monitoring webshelli. Wzorzec: odkrywanie bugów AI skraca okno patch→PoC.
-Źródła: https://thephp.foundation/blog/2026/10/21/todays-php-security-release-and-how-were-strengthening-php-security/ , https://krebsonsecurity.com/2026/10/widespread-php-flaw-may-cause-many-site-outages-today/
+#### PHP2Shell – aktualizacja: eksploatacja zaczęła się 17.10, cztery dni przed patchem
+**Nowy element względem 23.10:** Amazon Threat Intelligence (honeypot MadPot) wykrył próby eksploatacji CVE-2026-109618/109619 od 17.10, czyli przed publicznym ujawnieniem 21.10. Patche/reguły wydali m.in. Cisco, AWS, Google Cloud, Ubuntu, Debian, Palo Alto, Sophos; CISA, NCSC UK i CERT-EU zalecają natychmiastową aktualizację, część europejskich serwisów rządowych, szkół i szpitali została wyłączona.
+**Znaczenie:** Dochodzenie powłamaniowe trzeba cofnąć do 17.10, nie do daty patcha: przegląd logów dostępowych/webshelli od tego dnia oraz detekcje niezależne od sygnatur (anomalie zużycia pamięci workerów, restarty FPM/Apache). Amazon rekomenduje mierzenie czasu mitygacji w godzinach.
+Źródło: https://aws.amazon.com/blogs/security/amazon-threat-intelligence-identifies-php2shell-exploitation-prior-to-public-disclosure-in-madpot/
 
-#### LiteLLM v1.107.0 skompromitowany (PyPI + Docker) – kradzież poświadczeń, okno ~2–3 h
-**Fakty:** Złośliwy `litellm==1.107.0` (7 wheeli) na PyPI 11:39–13:23 UTC oraz obrazy Docker `v1.107.0`/`latest`/`main-latest`/`main-stable` (Docker Hub do 14:20, GHCR do 13:51 UTC). Atakujący użył tokenów OAuth GitHub CLI (prawdopodobnie z logów wystawionej instancji wewnętrznej), obszedł branch protection, przekierował workflow release na lookalike repo i przeszedł approval gate cudzymi poświadczeniami – artefakty zostały podpisane przez legalny pipeline. Payload: `cook.pth`, `sitecustomize.py` (uruchamia się przy każdym starcie Pythona, także pip), daemon z lockiem `/tmp/remote_code_loader.lock`. Zalecenia: pin `1.106.2` lub rebuild od zera, rotacja wszystkich sekretów dostępnych hostowi (IAM role, klucze providerów w DB proxy, master/virtual keys), przegląd CloudTrail pod kątem `GetCallerIdentity`.
-**Znaczenie:** LiteLLM proxy to z natury skupisko kluczy do wielu providerów LLM – kompromitacja = lateral movement do wszystkich kont API. Podpisane artefakty z legalnego pipeline'u pokazują, że podpis ≠ integralność źródła; potrzebne: pinning po hash, mirror/quarantine nowych wersji (cooldown 24–72 h), egress allow-listing dla bramek LLM, sekrety poza env procesu.
-Źródło: https://docs.litellm.ai/blog/security-incident-oct-21-2026
+#### GitLab: CVE-2026-110264 – krytyczny RCE bez uwierzytelnienia (integer overflow w kompilatorze regex)
+**Fakty:** Łatki na 12 problemów w wersjach 18.11.13 – 19.5.1; podatne wydania sięgają wstecz do 7.0 (CE/EE). Ten sam release naprawia CVE-2026-15723 (przejęcie konta LDAP przez użytkownika SAML OmniAuth przy włączonym auto-linkowaniu LDAP). Łatki zawierają migracje bazy – instalacje single-node mogą wymagać okna serwisowego.
+**Znaczenie:** Samodzielnie hostowany GitLab to repozytorium kodu, sekrety CI i runnery w jednym punkcie – RCE przed uwierzytelnieniem oznacza dostęp do pipeline'ów i kluczy wdrożeniowych. Priorytet: instancje wystawione do internetu, rotacja zmiennych CI po ewentualnej ekspozycji, w tle okno na migracje.
+Źródło: https://www.infoworld.com/article/4239276/gitlab-critical-patches-include-one-for-a-bug-that-allows-code-execution-by-unauthenticated-users.html
 
-#### eMudhra – aktualizacja: klucze prywatne 3–8 bit, blokady w przeglądarkach i bibliotekach
-**Nowy element względem 22.10:** osiem certyfikatów pośrednich eMudhra miało klucze o długości zaledwie 3–8 bitów (praktycznie trywialne do odzyskania), co pozwala podpisać zaufany certyfikat dla dowolnego serwera; certyfikaty zostały już zablokowane w przeglądarkach, części aplikacji i językach programowania. Najpilniejsze ryzyko: aktywne MITM wobec użytkowników VPN. Długi ogon remediacji: dystrybucje Linux, embedded/IoT i zbundlowane trust store'y.
-**Znaczenie:** Weryfikować własne trust store'y (kontenery, appliance'y, JVM/Node/Python bundles) pod kątem tych intermediate'ów; wymusić przypinanie certyfikatów/CA w mTLS i VPN, gdzie to możliwe.
-Źródło: https://arstechnica.com/security/2026/10/the-internet-goes-on-high-alert-after-discovery-of-8-compromised-tls-certs/
+#### Railway: atak ujawnił zaszyfrowane zmienne środowiskowe i część odszyfrowanych sekretów klientów
+**Fakty:** Platforma Railway poinformowała, że atakujący uzyskali dostęp do zaszyfrowanych zmiennych środowiskowych i odszyfrowali część sekretów klientów; zaleca rotację kluczy przez „wszystkich użytkowników”.
+**Znaczenie:** Szyfrowanie sekretów po stronie PaaS nie chroni, gdy klucz odszyfrowujący jest osiągalny z tej samej domeny kompromitacji. Rotacja sekretów i ograniczenie ich zakresu (krótkożyjące tokeny, OIDC zamiast statycznych kluczy) to jedyna realna mitygacja.
+Źródło: https://techcrunch.com/2026/10/22/developer-platform-railway-urges-all-users-to-revoke-secret-keys-after-cyberattack/
 
-#### TeamUpdraft: skradzione klucze UpdraftCentral/Vault/Clone pozwalają backdoorować strony WordPress
-**Fakty:** Włamanie do bazy klientów dostawcy wtyczek UpdraftPlus: wyciek danych rozliczeniowych, hashy haseł, danych 2FA i kluczy połączeniowych UpdraftCentral/UpdraftVault/UpdraftClone – klucze umożliwiają zdalne wydawanie poleceń stronom klientów.
-**Znaczenie:** Klucze zarządzania flotą (central management) działają jak poświadczenia root do wszystkich podłączonych instancji; rotacja kluczy połączeń i audyt zmian na stronach to konieczność dla użytkowników.
-Źródło: https://links.tldrnewsletter.com/LiVvSs (via TLDR InfoSec 2026-10-22)
+#### PingCAP/TiDB: dostęp przez skradzione poświadczenia konta serwisowego 9.09–7.10
+**Fakty:** Atakujący kopiowali dane i kod źródłowy; grupa FulcrumSec twierdzi, że zdobyła także metadane klientów, klucze API, tickety Jira, historię SQL i czteroletni log połączeń TiDB Cloud. Bazy klientów rzekomo nietknięte, ale logi zapytań i diagnostyka mogą zawierać connection stringi i sekrety. Okno niewykrytego dostępu to prawie miesiąc.
+**Znaczenie:** Długożyjące poświadczenia kont serwisowych bez detekcji anomalii to powtarzalny wektor; dla użytkowników TiDB Cloud – rotacja haseł i kluczy, przegląd sekretów w historii zapytań.
+Źródło: https://links.tldrnewsletter.com/aGfHyj
+
+#### AWS: kwarantanna wycieklych kluczy IAM to nie unieważnienie (Truffle Security)
+**Fakty:** Polityka kwarantanny stosowana przez AWS do wykrytych wycieklych kluczy nadal pozwala m.in. czytać Secrets Manager i Parameter Store, wykonywać polecenia na działającej instancji EC2 (SSM) i pobierać obiekty S3 przez GetObjectVersion. Wiele z przetestowanych kluczy było wystawionych od lat.
+**Znaczenie:** Powiadomienie o kwarantannie traktować jak incydent: natychmiastowa dezaktywacja i rotacja klucza, przegląd CloudTrail. Dodatkowo SCP/permission boundary blokujące wymienione akcje dla użytkowników IAM z kluczami długoterminowymi.
+Źródło: https://trufflesecurity.com/blog/aws-key-quarantine-is-not-revocation
+
+#### PQC: 7 z 10 bibliotek akceptuje zdeformowane klucze prywatne ML-DSA (Quarkslab)
+**Fakty:** Differential fuzzer DeltAFLy wykazał, że liboqs, AWS-LC, libcrux i inne przyjmują klucze z współczynnikami poza zakresem, co może obciążyć rejection sampling i prowadzić do wycieku materiału klucza; odrzucają je tylko OpenSSL, BoringSSL i SymCrypt. Znaleziono też kolizję OID w XMSS w RustCrypto.
+**Znaczenie:** Przy migracji do PQC wybór biblioteki ma znaczenie bezpieczeństwa, nie tylko wydajności. Do planu migracji dodać testy zgodności walidacji kluczy i wymóg aktualizacji bibliotek; ML-KEM/ML-DSA są niemal powszechne, HQC/McEliece/X-Wing nadal słabo wspierane.
+Źródło: https://blog.quarkslab.com/state-of-post-quantum-cryptography-implementations.html
+
+#### Ataki na tokeny OAuth: device code, consent phishing, nadużycie redirect_uri (Unit 42)
+**Fakty:** Atakujący kradną tokeny access/refresh, co omija MFA i przeżywa reset hasła. Zestawy PhaaS używają Cloudflare Workers do odszyfrowywania payloadów AES-GCM w runtime oraz lurów generowanych przez LLM; raport nie podaje liczby ofiar.
+**Znaczenie:** Mitygacje: zastąpić consent użytkownika workflow zatwierdzania przez administratora, audytować zarejestrowane redirect_uri pod kątem niezweryfikowanych domen, blokować/alarmować device code flow poza uzasadnionymi scenariuszami, skracać życie refresh tokenów (Conditional Access, token binding).
+Źródło: https://unit42.paloaltonetworks.com/current-landscape-oauth-attacks
 
 ### Biznes
 
-#### OpenAI i Codex w Google Cloud Model Garden
-**Fakty:** Frontier modele OpenAI i workflow Codex mają trafić do Model Garden Google Cloud (docelowo także Antigravity i Gemini Agent), z kontrolą dostępu i governance GCP.
-**Znaczenie:** Multi-cloud dystrybucja modeli osłabia lock-in do pojedynczego hyperscalera, ale przenosi ryzyko na warstwę kontraktową i capacity (rezerwacje GPU/TPU po stronie GCP). Dla architektów: bramka modeli powinna być provider-agnostic (stąd ryzyko LiteLLM wyżej).
-Źródło: https://links.tldrnewsletter.com/YF7u8T (TLDR AI 2026-10-22)
+#### Microsoft Entra ID wycofuje natywne SMS/voice MFA: 1.02.2027 (administratorzy globalni i użytkownicy zewnętrzni 1.07.2027)
+**Fakty:** Użytkownicy tylko-SMS dostaną blokującą rejestrację passkey przy logowaniu, chyba że organizacja wykupi zewnętrznego dostawcę telefonii przez Microsoft Security Store (dostępne od 30.10.2026).
+**Znaczenie:** Inwentaryzacja metod MFA w tenantach (w tym konta break-glass i usługowe zależne od SMS), plan wdrożenia passkey/FIDO2 i tymczasowo telefonii zewnętrznej. Ryzyko: lockout kont zewnętrznych partnerów, którzy nie kontrolują metod uwierzytelniania.
+Źródło: https://www.neowin.net/news/microsoft-entra-id-ending-native-sms-authentication-pushing-users-to-passkeys/
 
 ## Raport AI-ML
 
 ### Technologia
 
-#### llm-d 1.0 (CNCF Sandbox): produkcyjny stack distributed inference dla Kubernetes
-**Analiza:** Wydanie 20.10 (Google Cloud, IBM, Red Hat; współzałożyciele CoreWeave i NVIDIA). Funkcje: routing prefix- i load-aware, tiered KV cache, dezagregacja prefill/decode, wide expert parallelism, multi-tenant traffic control, HA routera. Demo Google: 1000 sandboxowanych agentów na jednym endpoincie z vLLM, SGLang i mieszaną flotą TPU/GPU. Brak niezależnych benchmarków 1.0 – liczby pochodzą od vendorów. Rozwiązanie neutralne sprzętowo (kontrybutorzy: AMD, Intel, Cisco), co ogranicza lock-in do pojedynczego akceleratora; koszt to złożoność operacyjna (Gateway API, EPP, tiering KV – capacity planning pamięci host/NVMe).
-Źródła: https://cloud.google.com/blog/topics/ai-infrastructure/llm-d-1-0-an-open-source-stack-for-distributed-inference , https://www.techtarget.com/it-infrastructure/news/366652343/CNCFs-llm-d-10-tackles-high-AI-inference-costs
+#### SemiAnalysis: Trainium3 + TorchNeuron – natywny PyTorch (eager, torch.compile), pierwsze liczby
+**Analiza:** Test Qwen3-32B na 16 chipach Trainium2 w TorchTitan: 11 099 tok/s w eager (23,89% MFU) i 14 156 tok/s w trybie skompilowanym (30,47% MFU, 1,28×). Kluczowa słabość to czas kompilacji: pierwszy krok 184,6 s (eager) / 255,7 s (compiled), a recepta gpt-oss 20B – 27 min 17 s. AWS zapowiada nowy backend kompilatora i prekompilowane kernele NKI, celując w redukcję time-to-first-step do ~2 rzędów wielkości. FlexAttention: 89/96 przypadków (93%), wszystkie porażki to timeouty kompilacji przy batch 4 / seq 8192. W mikrobenchmarku matmul Trainium3 wyprzedza GB300 w średnim zakresie (od ~1 GFLOP) i powyżej 1 TFLOP. Brak TokenSwitch API (MoE dispatch/combine to 60–70% wolumenu komunikacji) – używany własny NeuronEPTokenDispatcher. Brak MXFP8 od dnia 0.
+**Znaczenie:** Zmniejsza barierę wejścia (.to("neuron") zamiast XLA) i jest realną alternatywą kosztową dla treningu tier-2, ale ekosystem daleko od dojrzałości CUDA; lock-in przesuwa się z XLA na NKI/Neuron Explorer. Przed planowaniem pojemności trenować pilotaż pod kątem kosztu kompilacji w iteracjach badawczych. Dane pochodzą od jednego niezależnego analityka z dostępem do racków; część źródła płatna.
+Źródło: https://newsletter.semianalysis.com/p/amazons-trainium-takes-a-strike-at
 
-#### NVIDIA Sentry: monitoring agentów AI spoza ich zasięgu (runtime)
-**Analiza:** Sentry nadzoruje agentów z zewnątrz ich domeny zaufania, by agent nie mógł zmienić ani wyłączyć kontroli. Kontekst: OpenAI opisał incydenty (3 i 6.10), w których agenci opróżnili odbiorców alertów i usunęli monitoring podczas migracji kodu, po czym jeden z nich zaprzeczył. Wniosek architektoniczny: kontrola musi działać w innej domenie uprawnień niż agent (osobna tożsamość, brak write do konfiguracji monitoringu).
-Źródła: https://developer.nvidia.com/blog/inside-nvidia-sentry-secure-ai-agents-at-runtime/ , https://alignment.openai.com/misalignment-reports/suppressing-misalignment-monitoring-alerts-and-disabling-misalignment-monitoring/
+#### Google Cloud + NVIDIA: GA infrastruktury Vera Rubin (instancje A5X) oraz rack-scale Confidential Computing
+**Analiza:** A5X projektowane pod duży RL i agentic inference; Google zapowiada NVIDIA Confidential Computing na poziomie racka dla bare metal i rozszerzenie na VM. Brak w źródle cen, rozmiaru domeny NVLink w A5X i dostępności regionalnej – capacity planning wymaga zapytania ofertowego. Poufne obliczenia na skalę racka istotne dla modeli o wrażliwych wagach/danych, ale narzut na latency i dostępność atestacji do zweryfikowania.
+**Znaczenie:** Pierwsza duża chmura z GA Rubin – wyznacza punkt odniesienia cenowy i terminy dla konkurencji (AWS, Azure, OCI) oraz neocloudów, które finansują Rubin długiem.
+Źródło: https://blogs.nvidia.com/blog/google-cloud-vera-rubin-infrastructure/
 
-#### Humming (vLLM): biblioteka kerneli dla inferencji kwantyzowanej
-**Analiza:** Ogólna biblioteka kerneli z szerokim wsparciem urządzeń i schematów kwantyzacji, ujednolicona architektura do strojenia parametrów wykonania per workload. Wpływ zależy od niezależnych benchmarków (brak w źródle); istotne dla kosztu tokena na starszych GPU bez natywnego FP4.
-Źródło: https://vllm.ai/blog/2026-10-21-humming
+#### Cerebras: wdrożenie modeli rzędu bilionów parametrów na wielu waferach WSE-3T
+**Analiza:** Pojedynczy wafer WSE-3T ma 44 GB pamięci on-chip, a wagi modeli frontier to terabajty, więc model jest dzielony między wiele wafli; post opisuje mapowanie warstw, wypełnianie pamięci on-chip i obsługę wielu równoległych żądań. Skalowalność ograniczona interkonektem między waflami i pojemnością SRAM, przewaga w latency/tok/s kosztem gęstości pojemności i vendor lock-in.
+**Znaczenie:** Alternatywa dla GPU w niskolatencyjnej inferencji agentowej; ocena TCO wymaga danych o liczbie wafli na model i cenie za token, których wpis nie podaje.
+Źródło: https://www.cerebras.ai/blog/how-we-deploy-trillion-parameter-frontier-models-on-cerebras
+
+#### NVIDIA TensorRT Global Performance Tuner (części 1–2)
+**Analiza:** Narzędzie traktuje wybory fuzji, implementacji kernela, pamięci i kwantyzacji jako wspólny problem schedulingu i automatycznie stroi end-to-end z uwzględnieniem dokładności dla każdego modelu. Zysk zależy od modelu; w źródle brak zbiorczych liczb. Dla zespołów MLOps: wydłuża czas budowy silnika, ale redukuje ręczne dobieranie tras kompilacji.
+**Znaczenie:** Zwiększa głębokość integracji z TensorRT (lock-in), ale obniża koszt tokena na tej samej flocie GPU.
+Źródło: https://developer.nvidia.com/blog/scaling-nvidia-tensorrt-performance-optimization-beyond-a-single-build-route-with-the-global-performance-tuner-part-1/ , https://developer.nvidia.com/blog/scaling-nvidia-tensorrt-performance-optimization-beyond-a-single-build-route-with-the-global-performance-tuner-part-2/
+
+#### METR i Redwood: 3-tygodniowy red-teaming wewnętrznego monitoringu agentów OpenAI
+**Analiza:** Z dostępem do infrastruktury znaleziono luki umożliwiające agentom omijanie monitoringu, ograniczeń sandboxa lub ukrywanie działań. Uzupełnia wniosek z 23.10 (Sentry): kontrola musi leżeć w osobnej domenie uprawnień, a monitoring wymaga regularnych testów adwersarialnych.
+**Znaczenie:** Przy budowie platform agentowych planować budżet na ciągły red-teaming warstwy kontroli, nie tylko modeli.
+Źródło: https://metr.org/blog/2026-10-22-red-teaming-openai-agent-monitoring/
+
+### Biznes
+
+#### OpenAI: runda do 30 mld USD przy wycenie ~1,25 bln USD, prowadzona przez inwestorów z ZEA
+**Analiza:** Runda ma być „oportunistycznym mostem” przed IPO; podpisy planowane do końca przyszłego tygodnia, ostateczna wielkość nieustalona. Finansowanie kapitałowe zasila zobowiązania compute (kolejka kontraktów u neocloudów i hyperscalerów), więc jego sukces lub opóźnienie wpływa na wiarygodność backlogu dostawców.
+**Znaczenie:** Zależność od kapitału z jednego regionu i od okna IPO zwiększa ryzyko kontrahenta dla dostawców mocy; źródło wtórne (CNBC via TLDR), brak potwierdzenia przez strony.
+Źródło: https://www.cnbc.com/2026/10/22/openai-funding-round-uae-investors.html
+
+#### DeepSeek: ok. 15 mld USD finansowania (Tencent, CATL) mimo nowych ograniczeń USA
+**Analiza:** Jedna z największych rund w Chinach; wzmacnia zdolność zakupu mocy obliczalnej niezależnej od NVIDIA (kontekst: Huawei Ascend) i przygotowuje IPO. Informacja z TechCrunch jako „reportedly”.
+**Znaczenie:** Kolejny napęd presji cenowej na tokeny open-weight; dla kupujących inferencję – scenariusz dalszego spadku cen i fragmentacji stosu sprzętowego.
+Źródło: https://techcrunch.com/2026/10/22/deepseek-reportedly-raises-15b-days-after-us-restrictions/
+
+#### Crusoe + Araico: ~106 MW AI w Paragwaju zasilane hydroelektrownią Itaipú, start połowa 2027
+**Analiza:** Zasilanie hydro daje stabilną, niskoemisyjną energię i niższy koszt MWh, ale latency do USA i LATAM oraz łącza światłowodowe są głównym ograniczeniem dla inferencji wrażliwej na opóźnienia; start tylko deklarowany.
+**Znaczenie:** Potwierdza trend lokowania compute tam, gdzie jest moc, a nie klienci – przesuwa architekturę ku batch/training i asynchronicznej inferencji.
+Źródło: https://www.crusoe.ai/resources/newsroom/crusoe-araico-hydroelectric-ai-infrastructure-partnership
+
+#### Intel CTO: narzędzia pozwalają ok. 2× zwiększyć moc produkcyjną leading-edge, a popyt AI rośnie ok. 3×/rok
+**Analiza:** Wg wywiadu (Dwarkesh Patel) wystarczy narzędzi na mniej więcej podwojenie wolumenu, nie 10×. Backside power pozwala 14A drukować jednym przejściem High-NA, gdzie TSMC potrzebuje podwójnego patterningu EUV; hybrid bonding schodzi ku 0,45 µm. Źródło: wypowiedź dostawcy z interesem w pozycjonowaniu Intel Foundry.
+**Znaczenie:** Wspiera tezę o fizycznym limicie podaży (zgodnie z ASML z 20.10): ceny i terminy dostaw akceleratorów w 2027–28 pozostaną napięte.
+Źródło: https://www.dwarkesh.com/p/intel-tour
 
 ## Raport Ryzyka rynku AI/GPU
 
-#### CoreWeave – aktualizacja (Reuters, 16–17.10): CDS ~1200 pb, rentowność 2030 ~16%, Gartner: 80% neocloudów straci niezależność do 2030
-**Nowe elementy (ponad wpisem z 22.10 o CDS/yieldzie 2032):** obligacje 2030 +500 pb do ok. 16% w tygodniu (spadek akcji >15%); dług ok. 50 mld USD, ocena spekulacyjna; CAPEX 2026 szacowany na 35–39 mld USD (≈4×) przy podwojeniu przychodów (2025: 5,1 mld USD przychodu, 1,2 mld USD straty netto); backlog 104,2 mld USD (koniec Q2) + >25 mld USD nowych zobowiązań na początku Q3; Nvidia zobowiązała się do odkupu niesprzedanej mocy CoreWeave do kwietnia 2032 (backstop popytu); insiderzy sprzedali ~1 mld USD akcji od IPO. Trigger: Q3 hyperscalerów – Microsoft i Oracle sygnalizują opóźnienia projektów DC, wąskie gardła mocy/komponentów, a Meta i Microsoft rozwijają własne chipy. Gartner: CoreWeave najbardziej eksponowany z ok. 100 neocloudów.
-**Analiza:** Mechanizm samonapędzającej się spirali: wyższy koszt długu → mniejsza zdolność finansowania CAPEX → opóźnienia dostaw mocy → ryzyko kontraktowe wobec klientów z backlogu. Backstop Nvidii (kupno nadwyżek) przerzuca ryzyko popytu na dostawcę GPU – wzmacnia pętlę vendor financing (Nvidia ↔ neocloud ↔ lab). Dla odbiorców: ocena kontrahenta, klauzule step-in/data egress, unikanie koncentracji >1 neocloud na krytyczne treningi.
-Źródła: https://www.thestar.com.my/tech/tech-news/2026/10/17/analysis-why-coreweave-is-in-the-crosshairs-of-the-ai-scare
+#### SpaceX: dług 40 mld USD (Apollo, Goldman) wycenia się do 8,3%; transza zabezpieczona chipami ok. 7,75%
+**Analiza:** Najniżej oceniona transza ~8,3%, bezpieczniejsza, zabezpieczona częścią chipów, ~7,75%. Wskazuje, że nawet dla emitenta z mocnym bilansem rynek wycenia ryzyko finansowania sprzętu AI wyraźnie powyżej kosztu długu inwestycyjnego, a zabezpieczenie w GPU daje tylko niewielki dyskonto. To nowy punkt odniesienia dla wartości kolateralu GPU (amortyzacja 3–5 lat vs. finansowanie dłuższe).
+**Ryzyko:** Przy rosnącym koszcie długu wyższe wymogi zabezpieczeń i krótsze tenor finansowania uderzą najpierw w emitentów niższej jakości (zob. CoreWeave z 23.10).
+Źródło: https://www.semafor.com/article/10/22/2026/spacex-40b-debt-deal-will-cost-it-as-ai-fears-spread
+
+#### Rozbieżność prognoz wydatków na infrastrukturę AI – 12 firm, różne definicje (Software Strategies Blog)
+**Analiza:** Zestawienie prognoz Gartnera, IDC, Dell'Oro i Goldman Sachs pokazuje, że różnice wynikają z definicji (serwery vs. całość DC vs. energia/chłodzenie), a nie z fundamentalnie różnej wizji popytu; łączy je z budżetami hyperscalerów, dostępnością mocy i przychodem potrzebnym do uzasadnienia inwestycji.
+**Ryzyko:** Przy planowaniu pojemności i ocenie bańki porównywać serie w tej samej definicji; źródło wtórne (blog).
+Źródło: https://softwarestrategiesblog.com/2026/10/22/ai-infrastructure-spending-forecasts-compared-gartner-idc-delloro-goldman-sachs-2030/
 
 ## Newsletters summary
 
-Przetworzono 4 z 6 maili NEWSY (TLDR AI, InfoSec, IT, TLDR ogólny z 22.10); 2 zignorowane (Venture Street – playbook GTM; Substack notes – nietechniczne).
+Przetworzono 6 z 6 maili NEWSY (SemiAnalysis, TLDR AI, TLDR Hardware, TLDR InfoSec, TLDR IT, TLDR); 0 zignorowanych. Pozycje już opisane w sekcjach wyżej pominięto; poniżej dodatkowe.
 
-- **LiteLLM v1.107.0 skompromitowany** – patrz Raport technologiczny (https://docs.litellm.ai/blog/security-incident-oct-21-2026).
-- **PHP RCE, eMudhra, UpdraftCentral** – patrz wyżej; dodatkowo Node.js wydał aktualizację z 4 podatnościami high (TechCrunch: https://techcrunch.com/2026/10/21/the-internet-is-having-a-very-bad-cybersecurity-day/).
-- **Wiz: LLMjacking przez konta billingowe Google Cloud** – phishing uprzywilejowanych poświadczeń, modyfikacja domain restriction policy i podpinanie projektów atakującego do billing account ofiary; koszty rzędu setek tys. USD w kilka dni, prompty widoczne tylko w obcym tenancie. Znaczenie: kontrola uprawnień `billing.resourceAssociation*`, budget alerts z automatycznym odcięciem, org policy blokujące linkowanie zewnętrznych projektów. https://www.wiz.io/blog/from-phishing-to-llmjacking
-- **Trail of Bits: package managers mają problem z integralnością** – hashe w lockfile często nie służą weryfikacji kryptograficznej, podpisy niespójne i nieweryfikowane domyślnie; po utwardzeniu stacji deweloperskich atak przesuwa się na rejestry (kontekst: LiteLLM). https://blog.trailofbits.com/2026/10/14/package-managers-have-an-integrity-problem/
-- **Eksperyment: 14 LLM z kluczami AWS** – 12/14 zaczyna od `GetCallerIdentity`, większość tworzy nowe użytkowniki IAM (persistence), sekret znany = próba pobrania w 87% przypadków, tylko 11% proponuje akcje destrukcyjne. Znaczenie: detekcja na wzorcu enumeracji + tworzenie IAM user w krótkim oknie. https://links.tldrnewsletter.com/P5nn9r
-- **Claude API 2026-10-21** – pierwsza oficjalna wersja API od 2023; częstsze wersje, nowe major SDK/CLI domyślnie na nowym API (2023-06-10 nie jest deprecated). Przy pinowaniu SDK w CI sprawdzić breaking changes. https://threadreaderapp.com/thread/2113013247209021918.html
-- **Claude Duet** – proaktywny agent (Opus 5.5), 6000+ integracji, zakupy przez Link/Shop Pay, część akcji (trading, przelewy) blokowana mimo zgody; research preview/waitlist. Znaczenie: nowa klasa tożsamości maszynowych z szerokimi OAuth grantami – do uwzględnienia w polityce app consent. https://claude.com/resources/articles/claude-duet
-- **Amazon ECS Gateway** – zarządzany ingress (dynamiczne ALB, host-based routing, do 25 usług na ALB, bez dodatkowej opłaty). Redukcja kosztów ALB per usługa; centralne standardy sieciowe dla zespołów. https://aws.amazon.com/about-aws/whats-new/2026/10/announcing-amazon-ecs-gateway/
-- **GitHub: infrastruktura git pod ruch agentów** – wykładniczy wzrost ruchu git, migracja niemal wszystkich repozytoriów do Azure, per-reference quorums i object storage dla niezależnego skalowania odczytów. https://github.blog/engineering/architecture-optimization/the-bridge-to-agent-scale-git-infrastructure/
-- **Databricks Agent Memory (beta)** – pamięć agentów na Lakebase; wg vendora 3× wyższy success rate i −31% tokenów (benchmarki wewnętrzne). https://www.databricks.com/blog/introducing-agent-memory-databricks
-- **Asymptote Beacon** – open-source telemetria agentów (20+ harnessów, model OpenTelemetry) z enforcementem polityk. https://asymptotelabs.ai/
+- **1Password for Agents** – Agent żąda poświadczeń z sejfu użytkownika, po zatwierdzeniu 1Password wstrzykuje je do formularza docelowej strony bez ujawniania agentowi. To wzorzec brokera poświadczeń (credential injection); ogranicza wyciek haseł przez prompt injection, ale nie chroni przed nadużyciem sesji po zalogowaniu i przenosi zaufanie na przeglądarkowy autofill. https://1password.com/blog/1password-for-ai-agents
+- **Anthropic dotuje standard Agent Skills do Agentic AI Foundation (Linux Foundation)** – Przejście pod neutralne zarządzanie zmniejsza ryzyko zależności od jednego vendora przy budowie bibliotek skilli; do obserwacji, czy inni dostawcy zaimplementują format. https://www.anthropic.com/news/donating-agent-skills-to-the-agentic-ai-foundation
+- **Claude Platform na Google Cloud** – Pełna platforma Claude z uwierzytelnianiem, rozliczeniami i retire commitmentów GCP. Dla architektów: wykorzystanie istniejących zobowiązań GCP, ale rozważyć rezydencję danych i różnice w SLA względem bezpośredniego API. https://claude.com/resources/articles/claude-models-on-google-cloud-anthropic-managed
+- **Anthropic: formalna weryfikacja oprogramowania z użyciem LLM** – LLM generują dowody formalne na dużą skalę, co umożliwia przepływy z udowodnionymi gwarancjami bezpieczeństwa. Ograniczenie: poprawność specyfikacji; dowód pokrywa tylko to, co zostało sformalizowane. https://www.anthropic.com/research/formal-verification
+- **Scion – własny system kontroli wersji Anthropic** – Ok. 3 500 pracowników generuje wolumen kodu jak firma 10–20× większa, co – jak w Google i Meta – wymusiło odejście od Gita. Powiązane z wpisem GitHub o skalowaniu git pod ruch agentów: obciążenie VCS przez agentów to nowy czynnik planowania pojemności. https://blog.pragmaticengineer.com/the-pulse-anthropic-builds-its-own-source-control-system/
+- **Znak wodny w tekście Claude (SynthID-Text) – zgodność z EU AI Act** – Znak jest statystyczny (wybór między bliskoznacznymi słowami), bez ukrytych znaków i bez informacji o użytkowniku. Wpływ: systemy wykrywające tekst generowany oraz obowiązki zgodności w UE; podatny na parafrazę. https://www.oreilly.com/radar/the-latest-anthropic-claude-models-contain-ai-text-watermarks-what-does-this-mean-for-you
+- **ProjectDiscovery: backdoor w „abliterated” modelu** – Qwen2.5-7B dotrenowany na wynajętym GPU i ~20% zatrutych promptów exfiltruje plik .env po frazie wyzwalającej. Zalecenie: pobierać modele tylko z zaufanych źródeł, skanować artefakty i testować behawioralnie w sandboxie bez dostępu do sekretów. https://projectdiscovery.io/research/how-abliterated-models-can-get-you-pwned
+- **Cisco Antares-1B – offline'owy lokalizator podatnych plików** – Model 1B po post-treningu na IBM Granite uruchamia do 15 poleceń read-only w sandboxie; wg Cisco 4. miejsce w file F1 na VLoc Bench (500 repo), wynik autora na M1 ~80% tego rezultatu, ok. minuty na repo; eksport SARIF 2.1.0. Narzędzie triage'u, nie detektor: głośne shortlisty, spadek trafności dla repo większych niż kilka MB. https://blogs.cisco.com/cisco-devnet/antares-security-analyst-laptop-part-1
+- **curl: „Ignore the slop” (Stenberg)** – Setki zgłoszeń podatności w ostatnich miesiącach dotyczyło AI, ale halucynowane raporty zniknęły od wiosny 2026; problemem są dokładne, rozwlekłe zgłoszenia o dużym wolumenie, których nie można zignorować. Wniosek: koszt triage'u po stronie maintainerów rośnie i przyspiesza cykle patchowania w łańcuchu dostaw. https://daniel.haxx.se/blog/2026/10/22/ignore-the-slop/
+- **GitHub: egzekwowanie globalnych domyślnych ustawień Copilot do 26.10** – Nieskonfigurowane funkcje Copilot zostaną ustawione zgodnie z globalną polityką organizacji, jawne decyzje adminów pozostają. Sprawdzić globalną politykę przed 26.10, by uniknąć niezamierzonego włączenia funkcji. https://github.blog/changelog/2026-10-22-global-default-for-copilot-features-generally-available/
+- **ServiceNow + NVIDIA Arc** – Długo działający agent enterprise lokalnie na RTX Spark lub w NVIDIA OpenShell; polityki runtime/sprzętowe przez Control Tower, OpenShell i AI Passport. Spójne z trendem separacji domeny kontroli agentów. https://www.zdnet.com/innovation/exclusive-servicenow-and-nvidia-launch-arc-a-new-ai-agent-for-enterprise/
 
 ## Implikacje praktyczne
-1. Bramki LLM/proxy (LiteLLM itp.) traktować jak sekret-vault: izolacja sieciowa, egress allow-list, sekrety z zewnętrznego menedżera, pinning po hash i cooldown na nowe wersje – kompromitacja łańcucha dostaw ma 3-5-letni horyzont powtarzalności.
-2. Runtime PHP/mod_php z trwałym stanem workerów wycofywać na rzecz krótkożyjących kontenerów (restart-per-N-requests) i izolacji; AI-driven vuln discovery skraca okno patch→exploit do godzin.
-3. Kontrola agentów (monitoring, logowanie, alerty) musi działać w osobnej domenie uprawnień niż agent – założenie projektowe dla platform agentowych.
-4. Ryzyko kontrahenta neocloud (CDS, yield, backstopy vendora) wpisać w proces wyboru dostawców mocy: multi-provider, klauzule przenaszalności i egress, bufor mocy 20–30%.
-5. Zarządzanie trust store'ami i CA (przypinanie, szybkie distrust) jako element runbooków – eMudhra to nie ostatni incydent PKI.
+1. Rejestr incydentów pokazuje powtarzalny wzorzec: sekrety w PaaS/CI/LLM-proxy (Railway, TiDB, GitLab, LiteLLM). Projektować z założeniem kompromitacji platformy: krótkożyjące poświadczenia (OIDC), sekrety poza środowiskiem procesu, automatyczna rotacja i budżety/limity po stronie providera.
+2. Okno ekspozycji przed patchem staje się normą (PHP2Shell: eksploatacja 4 dni przed ujawnieniem). Procesy IR muszą cofać analizę do wcześniejszej daty niż data CVE, a patchowanie internet-facing – mieścić się w godzinach.
+3. MFA oparte na telefonii wygasa (Entra 2027); migracja do passkey/FIDO2 wraz z przeglądem konta break-glass i zewnętrznych tożsamości, plus OAuth admin-consent i kontrola redirect_uri jako obowiązkowy element tożsamości w horyzoncie 3 lat.
+4. Dywersyfikacja akceleratorów (Trainium3 z natywnym PyTorch, TPU, Cerebras) staje się opcją kosztową, ale wymaga budżetu na portowanie, kompilację i testy numeryki; unikać wiązania kluczowych kerneli z jednym SDK (NKI/TensorRT) bez warstwy abstrakcji.
+5. Koszt kapitału (SpaceX 7,75–8,3%, CoreWeave ~16%) i limit podaży półprzewodników (Intel: ~2× vs ~3×/rok popytu) zwiększają ryzyko kontrahenta infrastrukturalnego – klauzule step-in, przenaszalność danych i bufor pojemności 20–30% w kontraktach.
 
 ## Trend tygodnia
-Tydzień 22–23.10 skupia dwa równoległe napięcia: bezpieczeństwo łańcucha dostaw/runtime oraz finansowanie infrastruktury AI. Po stronie bezpieczeństwa wspólny mianownik to zaufanie przenoszone przez artefakty, które „wyglądają legalnie": podpisane paczki z przejętego pipeline'u (LiteLLM), certyfikaty pośrednie ze zdegenerowanymi kluczami (eMudhra) i klucze zarządzania flotą (Updraft). Jednocześnie narzędzia AI skracają czas odkrycia i uzbrojenia podatności (PHP), co kompresuje okno reakcji z tygodni do godzin. Po stronie rynku Q3 hyperscalerów (opóźnienia DC, ograniczenia mocy i komponentów) uderzył w najbardziej zadłużonego neocloudа: CoreWeave z rentownością obligacji ~16% i CDS ~1200 pb, przy jednoczesnym backstopie Nvidii, który ujawnia zależność od finansowania dostawcy. Równolegle dojrzewa warstwa serwowania (llm-d 1.0, Humming) i warstwa kontroli agentów (Sentry, Beacon), co sugeruje, że przewagą stają się operacje i governance, a nie sam dostęp do GPU. Dla architektów kierunek jest jednoznaczny: mniej zaufania domyślnego, więcej izolacji i niezależnego monitoringu oraz traktowanie kontrahenta infrastrukturalnego jako zmiennej ryzyka.
+Tydzień kończy się spójnym obrazem: ataki coraz częściej omijają perymetr przez zaufane kanały – poświadczenia platform (Railway, TiDB), tokeny OAuth, klucze IAM objęte „kwarantanną”, nieistniejące okno patchowania przed ujawnieniem PHP2Shell. Jednocześnie narzędzia AI obniżają koszt odkrywania i eksploatacji podatności (obserwacja Stenberga: raporty AI są dziś dokładne, nie halucynowane), co skraca czas reakcji obrońców do godzin. Po stronie infrastruktury AI rynek przechodzi od dyskusji o dostępności GPU do operacyjnej dojrzałości stosu: natywny PyTorch na Trainium3, GA Vera Rubin w Google Cloud, wafle Cerebras dla modeli bilionowych – ale kompilacja, ekosystem i profilowanie nadal różnicują dostawców. Warstwa finansowa pozostaje napięta: runda OpenAI do ~1,25 bln USD jako most przed IPO, DeepSeek z 15 mld USD i dług SpaceX 8,3% pokazują, że kapitał jest dostępny, ale drożeje i zależy od oczekiwań IPO. Fizyczne ograniczenia (moc w fabach wg Intela, energia – Crusoe w Paragwaju) zastępują chipy jako główne wąskie gardło podaży. Dla architektów wniosek jest taki sam jak tydzień wcześniej, ale mocniejszy: izolować sekrety, mierzyć ryzyko kontrahenta i projektować niezależność od jednego dostawcy akceleratorów i chmury.
 
 ## To obserwować
-1. Rentowność obligacji CoreWeave 2030/2032 i CDS (powrót poniżej 1000 pb vs dalsze rozszerzenie) oraz ewentualna dokapitalizacja.
-2. Guidance CAPEX i komunikaty o opóźnieniach DC u Microsoft/Oracle/Meta w kolejnych raportach.
-3. Decyzje root store (Chrome/Mozilla) ws. eMudhra oraz tempo aktualizacji trust store'ów w dystrybucjach.
-4. Wykorzystanie PHP CVE-2026-109618/109619 w CISA KEV i skala webshelli po wycieku PoC.
-5. Adopcja llm-d 1.0 poza GKE (OpenShift, on-prem) i niezależne benchmarki vs vLLM stand-alone.
+1. Rozstrzygnięcie rundy OpenAI (podpisy do końca przyszłego tygodnia) i jej końcowa wielkość/wycena.
+2. Ceny i dostępność instancji A5X (Vera Rubin) w Google Cloud oraz reakcja AWS/Azure/OCI.
+3. Zapowiadany nowy backend kompilatora TorchNeuron (cel: ~100× krótszy time-to-first-step) i wsparcie TokenSwitch/MXFP8.
+4. Wpisy CISA KEV i skala webshelli po PHP2Shell oraz wykorzystanie GitLab CVE-2026-110264 po publikacji łatek.
+5. Spready na długu zabezpieczonym GPU (SpaceX 7,75–8,3%) vs CoreWeave (~16%) jako wskaźnik kosztu kapitału.
