@@ -1,110 +1,100 @@
-# Newsy — 2026-10-29
+# Newsy — 2026-10-30
 
-**Okno przyrostowe:** od raportu 2026-10-28 do 2026-10-29. Pominięte sekcje: AI for networking – brak nowych wiarygodnych pozycji (wątek Cisco PIA ujęto w Newsletters). Ograniczenia: dane Q3 Alphabet/Microsoft pochodzą z newslettera (obliczenia autora), niezweryfikowane w raportach pierwotnych; wyszukiwarka nie zwróciła prymarnych źródeł Q3.
+**Okno przyrostowe:** od raportu 2026-10-29 do 2026-10-30. Pominięte sekcje: euro neocloud, AI for networking – brak nowych wiarygodnych pozycji (wyszukiwarka nie zwróciła świeżych źródeł pierwotnych; Acceleron ujęto 29.10). Ograniczenia: większość pozycji pochodzi z newsletterów TLDR (z linkami do źródeł pierwotnych), niezweryfikowana niezależnie.
 
 ## Raport technologiczny
 
 ### Technologia
 
-#### Microsoft Authenticator (Android): eskalacja lokalna – złośliwa aplikacja uzyskuje tokeny kont służbowych (poprawka 6.2606.4246)
-Authenticator walidował tylko to, czy deklarowana tożsamość wygląda poprawnie, a nie czy zgadza się z wywołującym. Aplikacja bez uprawnień mogła podszyć się pod zaufaną aplikację Microsoft i otrzymać token do poczty, plików i kalendarza (profil służbowy). Microsoft: exploitation wymaga ukończenia przez użytkownika przepływu logowania, brak znanych ataków.
-**Analiza:** Wymusić minimalną wersję aplikacji w MDM/Intune (compliance), ograniczyć czas życia tokenów i włączyć token protection/CAE; przejrzeć logi sign-in pod kątem nietypowych aplikacji klienckich.
-Źródło: https://thehackernews.com/2026/10/microsoft-authenticator-flaw-let.html
+#### UEFI/EDK2 PXE Base Code: CVE-2026-97631 (CVSS 9.5), 16-letni buffer overflow, RCE w ring 0 przed Secure Boot
+Przepełnienie bufora w sterowniku PXE Base Code (TianoCore EDK2, bazowy kod firmware większości serwerów): zbyt duży komunikat ICMP error podczas network boot daje wykonanie kodu przed załadowaniem Secure Boot i łańcucha zaufania TPM. Poprawka wyciekła przez PR AMI na miesiące przed koordynowanym ujawnieniem w styczniu; eksploatacja wymaga dostępu do segmentu L2/L3 oraz strojenia adresów per model.
+**Znaczenie:** Persistencja poniżej OS/hypervisora, niewidoczna dla EDR; w farmach bare-metal (provisioning PXE/iPXE, neocloudy) segment boot to powierzchnia ataku. Wymagać od vendorów firmware (Dell/HPE/Lenovo/Supermicro/AMI), wyłączać PXE tam, gdzie możliwe, izolować VLAN-y provisioningu, monitorować anomalie ICMP, planować okno masowej aktualizacji BIOS + atestację (measured boot).
+Źródło: https://arstechnica.com/security/2026/10/code-execution-flaw-in-uefi-firmware-threatens-most-servers-on-planet-earth/
 
-#### Fortinet FortiSIEM: krytyczna luka CVE-2026-106173 (CVSS 9.8) z publicznym PoC (alert CSA, 22.10)
-Dotyczy FortiSIEM 7.5.0; zalecana aktualizacja do 7.5.1+. Publiczny PoC skraca czas do masowej eksploatacji. SIEM trzyma poświadczenia do źródeł logów i często ma szerokie uprawnienia sieciowe.
-**Analiza:** Kompromitacja SIEM = dostęp do kolektorów i kont serwisowych oraz możliwość ślepoty detekcyjnej; ograniczyć ekspozycję interfejsów zarządzania, po patchu rotować poświadczenia kolektorów.
-Źródło: https://www.csa.gov.sg/alerts-and-advisories/alerts/al-2026-153/
+#### Skyw4lker: device code phishing na tokeny Microsoft 365 (produkcja, technologia, ochrona zdrowia w USA)
+Ofiara dostaje „zabezpieczoną hasłem” umowę/ofertę przez Google Sites i jest kierowana do legalnego przepływu uwierzytelniania Microsoft; zatwierdzenie kodu urządzenia przekazuje atakującemu tokeny M365. Backend PHP odpytuje o ukończenie autoryzacji, loguje IP i geolokalizację.
+**Znaczenie:** Atak omija MFA, bo użytkownik sam autoryzuje sesję. Mitigacja: Conditional Access blokujące device code flow dla użytkowników bez uzasadnionej potrzeby, token protection, alerty na sign-in z device code. Wiąże się z lukami Authenticator z poprzedniej edycji.
+Źródło: https://thehackernews.com/2026/10/american-organizations-under-attack.html
 
-#### GMO Internet: włamanie do Onamae Desktop Cloud (potencjalnie 27 tys. serwerów), żądanie ok. 50 mln USD
-Atakujący uzyskał dostęp do usługi pulpitów dla traderów; GMO wyłączyło usługę 21.10, klienci zgłaszają nieautoryzowaną aktywność na kontach tradingowych, domniemane dane klientów pojawiły się w sieci (GMO weryfikuje). Wektor wejścia nieujawniony.
-**Analiza:** Scenariusz kompromitacji dostawcy VDI/DaaS: pojedynczy tenant control plane kompromituje tysiące hostów. Wymagać od dostawców segmentacji tenantów, niezależnego logowania i planu odtworzenia bez reuse poświadczeń.
-Źródło: https://techcrunch.com/2026/10/27/japan-internet-giant-gmo-says-hackers-posted-stolen-customer-data/
+#### NIST IR 8547 (final): harmonogram wycofania algorytmów klucza publicznego podatnych na kwanty
+Finalna mapa przejścia na standardy PQC; zgodna z czerwcowym rozporządzeniem wykonawczym USA: wymiana key establishment w systemach federalnych o wysokiej wartości do 2030, podpisów do 2031.
+**Znaczenie:** Twardy punkt odniesienia dla inwentaryzacji kryptografii (CBOM), kosztu handshake’ów hybrydowych w TLS/IPsec/SSH oraz wymagań wobec dostawców sprzętu sieciowego (HSM, VPN, PKI) w horyzoncie 3–5 lat.
+Źródło: https://csrc.nist.gov/pubs/ir/8547/final
+
+#### Kradzieże sprzętu DC w transporcie: >100 mln USD od czerwca, spoofing GPS i przejęte konta spedycyjne
+Przejmowanie kont frachtowych przez złośliwe linki, licytowanie przewozów jako przejęta tożsamość, podstawianie kierowców; jeden ładunek ok. 10 mln USD zniknął po prawdopodobnym spoofingu współrzędnych trackera.
+**Znaczenie:** Ryzyko łańcucha dostaw dla serwerów GPU (wartość jednostkowa rzędu setek tys. USD za węzeł): wymagać od integratorów weryfikacji przewoźnika, plomb z niezależną telemetrią, łączenia lokalizacji z danymi niepodatnymi na GPS spoofing, ubezpieczenia transportu. Dodatkowo ryzyko firmware’owe sprzętu o niepewnym chain of custody.
+Źródło: https://arstechnica.com/tech-policy/2026/10/highway-thieves-are-spoofing-gps-to-steal-millions-in-data-center-bound-cargo/
+
+### Biznes
+
+#### Tesco planuje migrację brzegowej wirtualizacji z VMware na Proxmox
+Oferta pracy opisuje przejście edge z VMware na Proxmox z powodu zmian licencyjnych Broadcom.
+**Znaczenie:** Kolejny sygnał erozji bazy VMware w edge/branch (niskie wymagania, wysoki wolumen węzłów, gdzie koszt licencji per rdzeń dominuje); kosztem są narzędzia zarządzania flotą, DR i wsparcie vendorowe.
+Źródło: https://www.itpro.com/software/open-source/tesco-eyes-open-source-vmware-alternative-amid-long-running-spat
 
 ## Raport AI-ML
 
+### Biznes
+
+#### OpenAI ma kupować TPU od Google (nie tylko wynajmować) — raport The Information
+Poza dotychczasowym wynajmem, OpenAI miałoby nabywać TPU, równolegle do GPU NVIDIA i własnych układów z Broadcom. Informacja z drugiej ręki, niepotwierdzona przez strony.
+**Analiza:** Dywersyfikacja poza CUDA przez największego konsumenta mocy; zwiększa wolumen TPU (spójne z TPU na OCI od 2027), ale wymaga portowania stosu serwującego pod XLA/JAX. Dla capacity planningu: rosnąca konkurencja o moce TPU i potencjalne wiązanie dostępności z kontraktami strategicznymi.
+Źródło: https://links.tldrnewsletter.com/dcOmE4
+
+#### NVIDIA i Oracle: Vera Rubin NVL72 w OCI Superclusters do skali multi-gigawatowej
+Plan rozbudowy Superclusterów OCI o systemy Vera Rubin NVL72 i procesory Vera, do skali wielu GW.
+**Analiza:** Zobowiązania mocy po stronie Oracle rosną równolegle do dywersyfikacji na TPU; kluczowe ryzyka to energia/PPAs, harmonogram oddawania DC i koszt finansowania (patrz Ryzyka). Brak podanych terminów i wolumenów w materiale newslettera.
+Źródło: https://nvidianews.nvidia.com/news/nvidia-and-oracle-expand-nvidia-vera-rubin-to-multi-gigawatt-scale-and-bring-nvidia-vera-cpu-to-oracle-cloud-infrastructure
+
 ### Technologia
 
-#### Oracle Cloud pierwszym hyperscalerem poza Google oferującym TPU (od 2027)
-TPU w liquid-cooled DC OCI, spięte przez SmartNIC fabric Acceleron. Google deklaruje dla TPU 8. generacji do 12,6 PFLOPS FP4 na chip, do 2x perf/W, >97% goodput z optycznymi przełącznikami (OCS), >50% mniej hopów i do 80% lepszy koszt low-latency serving. Parametry vendorowe, bez niezależnych benchmarków.
-**Analiza:** Rozszerza wybór poza CUDA (JAX/XLA, wymaga portowania stosu inferencyjnego); w capacity planningu pojawia się alternatywa dla GPU, ale dostępność dopiero 2027, więc nie rozwiązuje deficytu 2026–27. Lock-in przesuwa się do kompilatora/runtime.
-Źródło: https://cloud.google.com/blog/products/infrastructure/bringing-google-tpus-to-oracle-cloud-infrastructure
-
-#### Cloudflare: cross-request KV cache exposure w GLM-5.3 (Workers AI) – dezagregowany SGLang
-Prompty >681 280 tokenów zwróciły dane innych klientów w 155 odpowiedziach: dezagregowany SGLang oznaczał żądanie jako odrzucone, ale decode dostawał 1-tokenowy KV cache z nienaruszonymi stronami poprzednich sesji. Pula KV prefill była mniejsza niż reklamowane 1M tokenów, a walidacja przed startem sprawdzała tylko kody HTTP. Okno 27.08–9.09, brak dowodów celowej eksploatacji. Remediacja: SGLang ≥ 0.5.22, weryfikacja rozmiaru puli KV vs kontekst na każdym węźle, flaga --disaggregation-enable-kv-checksum.
-**Analiza:** Multi-tenant inferencja z dezagregacją prefill/decode i współdzielonym KV cache to nowa klasa wycieku między tenantami; testy akceptacyjne muszą obejmować graniczne długości kontekstu i zawartość odpowiedzi, nie tylko status.
-Źródło: https://blog.cloudflare.com/kv-cache-exposure-remediation
-
-#### NVIDIA Mission Control 2.5: autonomiczne odtwarzanie w Kubernetes oraz Minerva (telemetria → GPU yield) (26.10)
-Mission Control 2.5 automatyzuje monitoring i recovery w klastrach AI; Minerva koreluje telemetrię sieci i obliczeń AI Factory dla poprawy uzysku GPU. Treść blogowa bez liczb o MTTR i narzucie agentów telemetrycznych.
-**Analiza:** Wpływa na goodput dużych jobów (krótszy czas niedostępności węzłów), ale pogłębia zależność od stosu NVIDIA (Mission Control/Run:ai/KAI); weryfikować na własnych failure modes (NVLink, XID, awarie NIC).
-Źródło: https://developer.nvidia.com/blog/how-nvidia-mission-control-2-5-brings-autonomous-recovery-to-kubernetes/
-
-## euro neocloud
-
-### Nebius
-
-#### Nebius: publiczne ceny spot GPU na żywo, AI Builder Program w Europie, Lappeenranta (do 310 MW, 2027) (21.10)
-Nebius opublikował żywe ceny spot GPU i rozszerzył program z NVIDIA na Europę. Planuje DC w Lappeenranta w Finlandii do 310 MW (dostawy od 2027); kontraktowana moc EMEA >750 MW, w tym Lille (240 MW docelowo). Wcześniej ujęto emisję 5 mld USD convertible (21.10).
-**Ocena analityczna:** Sygnały ostrzegawcze: jawne ceny spot oznaczają presję cenową/ komodyfikację GPU-h; spadek akcji Nebius o ok. 5% 20.10 w parze z CoreWeave (przegląd długu neocloudów). Ocena ryzyka: ŚREDNIE – duża kontraktowana moc i dostęp do rynku kapitałowego, ale wysoka wrażliwość na koszt kapitału i harmonogram energii; brak sygnałów o problemach SLA.
-Źródło: https://nebius.com/newsroom/nebius-brings-compute-pricing-into-the-open-as-europe-s-ai-builders-scale-on-its-cloud
+#### Decagon: samodoskonalący się stos inferencyjny (AutoResearch), do 2,5x przepustowości w limicie latency
+Agenci diagnozują wąskie gardła, testują optymalizacje na replayu ruchu produkcyjnego: kwantyzacja, scheduling, patche silnika, speculative decoding; zmiany produkcyjne zatwierdza człowiek.
+**Analiza:** Wartość leży w replayu ruchu i bramce SLO, nie w agencie; liczba 2,5x to deklaracja vendora/klienta bez niezależnej weryfikacji, zależna od profilu obciążenia. W kontekście wycieku KV z poprzedniej edycji zmiany silnika wymagają testów izolacji tenantów.
+Źródło: https://links.tldrnewsletter.com/3vHagX
 
 ## Ryzyka rynku AI/GPU
 
 ### Wpisy
 
-#### Q3 2026: Alphabet i Microsoft – chmura przyspiesza, ale Alphabet finansuje capex zewnętrznie
-Kwartał do 30.09: Google Cloud >2x r/r do 30,7 mld USD, Azure +48% do 33,2 mld USD. Gotówkowy capex = 40% przychodów (Alphabet) i 43% (Microsoft; 49% z finance leases). Microsoft: ok. 63 USD operacyjnego cash na 100 USD przychodu, FCF 18,6 mld USD; Alphabet: 33 USD, wydatki przekroczyły OCF o 9,1 mld USD, w kwartale emisja not 28,7 mld USD i akcji 12,4 mld USD. Wyliczenia kwartalne autora newslettera (nie prymarne), do weryfikacji w raportach.
-**Analiza:** (FINANSE) Nawet hyperscaler o najsilniejszej pozycji przechodzi na finansowanie zewnętrzne – razem z emisją Meta (95 mld USD) wzmacnia tezę, że tempo budowy DC zależy od okna rynku kapitałowego. Dla klientów: ryzyko podwyżek cen mocy lub rygorystyczniejszych kontraktów. Mniejsze podmioty (neocloudy) konkurują o ten sam kapitał.
-Źródło: https://businessengineer.ai/p/alphabet-and-microsoft-on-the-map
-
-#### CoreWeave: HSBC podtrzymuje bearish call (20.10), obligacje 2032 ok. 15% rentowności, 4,4 mld USD do spłaty/refinansowania do końca 2026
-Nowe elementy względem wcześniejszych wpisów (CDS, yield 2030): HSBC podtrzymał niedźwiedzią rekomendację z powodu ryzyka długu, notowania neocloudów (CoreWeave -4%, Nebius -5%) spadły 20.10; raportowany backlog ok. 104 mld USD przy ujemnym FCF H1 2026 ok. -10,45 mld USD (obliczenia z OCF-capex, źródła agregatorowe, rozbieżne dane o długu).
-**Analiza:** (FINANSE/POPYT) Backlog rośnie szybciej niż zdolność finansowania; test refinansowania 4,4 mld USD i kosztu długu rozstrzygnie, czy neocloudy utrzymają harmonogram oddawania DC. Dla klientów: ryzyko kontrahenta przy kontraktach zarezerwowanych.
-Źródło: https://247wallst.com/investing/2026/10/20/coreweave-falls-4-as-hsbc-reiterates-bearish-call-on-debt-risk-nebius-drops-5-oracle-holds-steady/
+#### Koncentracja dostawców: prospekt IPO Anthropic – prawie połowa sprzedaży przez Amazon i Google
+Prospekt pokazuje silną zależność dystrybucyjną od partnerów chmurowych; komentatorzy zalecają traktowanie zakupów AI jako kwestii odporności (przenośność danych i workflow).
+**Analiza:** (POPYT) Kontrakty i retencja klientów modeli są pośrednio zależne od marż i polityk hyperscalerów; efekt cieniowania: wzrost zużycia u laboratoriów napędza capex chmur finansowany zewnętrznie (wpis Q3 z 29.10). Źródło wtórne.
+Źródło: https://www.itpro.com/business/what-enterprises-can-learn-from-anthropics-ipo-prospectus-about-vendor-dependency
 
 ## Newsletters summary
 
 ### Wpisy
 
-#### Cisco Privileged Infrastructure Access: krótkożyjące, identity-bound uprawnienia do urządzeń sieciowych
-Zastępuje długożyciowe poświadczenia i statyczne ścieżki dostępu uprawnieniami per zadanie wygasającymi po zakończeniu pracy, także dla agentów automatyzujących. Materiał vendorowy, brak danych o integracji z TACACS+/RADIUS i narzucie latencji sesji.
-**Analiza:** Zgodne z kierunkiem JIT access dla NetOps/AIOps; ocenić zależność od vendora, zachowanie przy awarii kontrolera (break-glass) i audyt sesji.
-Źródło: https://blogs.cisco.com/security/cisco-rethinks-privileged-infrastructure-access
+#### Microsoft Entra ID: wycofanie SMS/voice MFA w lutym 2027
+Przypomnienie dla administratorów o wygaszeniu uwierzytelniania SMS i głosowego dostarczanego przez Microsoft; migracja na passkeys.
+**Analiza:** Zaplanować inwentaryzację kont zależnych od SMS (konta serwisowe, break-glass, zewnętrzni), politykę rejestracji passkey i procedurę odzyskiwania; ryzyko lockoutów przy masowym wygaszeniu.
+Źródło: https://links.tldrnewsletter.com/vmR5pX
 
-#### IBM: tożsamość i kontrola dla agentów AI (Vault ze short-lived credentials, integracja z NVIDIA OpenShell, watsonx Orchestrate)
-Vault wydaje krótkożyciowe poświadczenia dla tożsamości nie-ludzkich; watsonx Orchestrate wykrywa, izoluje i ocenia agentów na platformach zewnętrznych.
-**Analiza:** Rozwiązuje klasę problemu z poprzednich edycji (nadmierne zgody OAuth, Gheist); skuteczność zależy od pokrycia agentów spoza platformy IBM.
-Źródło: https://newsroom.ibm.com/2026-10-27-ibm-introduces-identity-and-control-for-ai-agents,-securing-frontier-intelligence-for-the-enterprise
+#### „AI hacker” znajduje 4 luki w EPICS Base w <4 godziny (CVSS 9.8 integer overflow, RCE)
+Cipher (Causal Security) znalazł cztery podatności w EPICS (sterowanie akceleratorami/fuzją); jedna krytyczna, trzy wysokie (crash, memory corruption, info disclosure); wymagany dostęp sieciowy do usług EPICS.
+**Analiza:** Skraca czas od kodu do exploita także dla ICS/OT; segmentacja OT i patching stają się krytyczne. Anthropic opublikował równolegle badania nad odkrywaniem i exploitacją luk (przeglądarki, mobilne OS, stos sieciowy jądra) w trybie CVD.
+Źródło: https://www.theregister.com/security/2026/10/27/ai-hacker-finds-4-severe-bugs-in-popular-industrial-control-software-in-under-4-hours/5305811
 
-#### Tracebit: „context bombs” – deception przeciw agentom atakującym (773 oceny w AWS)
-Połączone techniki deception zmniejszyły średnią liczbę osiągniętych celów z 2,48 do 0,23 na run, wydłużyły czas 2,8–8,9x i podniosły koszt modelu 1,6–3,9x; fałszywy raport pentestu oznaczający prawdziwe cele jako kanarki obniżył skuteczne runy z 39/40 do 2/40 (4 modele).
-**Analiza:** Canary tokens i decoy w IAM/S3 mają większy zwrot przeciw atakom LLM niż przeciw ludziom; wyniki z jednego laboratorium – ryzyko adaptacji atakujących i fałszywych alarmów.
-Źródło: https://agentic.tracebit.com/factory/
-
-#### Wiz: anatomia ataku na chmurę prowadzonego przez agentów AI
-Ataki hałaśliwe, uporczywe, naprzemienne między fazami łańcucha; zalecenia: ujednolicić logi, zakładać pełną ekspozycję przejętych zasobów, ograniczać zaufanie między systemami.
-**Analiza:** Detekcja oparta na wolumenie i powtarzalności (rate, sekwencje API) jest skuteczna; skrócić czas reakcji (automatyczne odcięcie sesji).
-Źródło: https://www.wiz.io/blog/anatomy-of-ai-driven-cloud-attacks
-
-#### Linux EDR: zielony dashboard bez telemetrii (niezgodności jądra, tryb zdegradowany)
-Czujniki EDR na serwerach Linux potrafią działać w degradated mode po aktualizacji kernela. Rekomendacja: weryfikować zdrowie sensora per host, pilotować zmiany przez aktualizacje jądra, pokryć kontenery i alerty poza godzinami.
-**Analiza:** Dodać do compliance monitoring metrykę „sensor w pełnym trybie” i test regresji po każdym upgrade kernela.
-Źródło: https://technologymatch.com/blog/extending-edr-to-linux-servers
+#### Anthropic: odkrywanie i exploitacja podatności w oprogramowaniu krytycznym
+Model badawczy znalazł RCE, ucieczki z sandboxów i obejścia blokady ekranu, zgłoszone vendorom w CVD.
+**Analiza:** Oczekiwać fali poprawek w komponentach sieciowych jądra i przeglądarkach; skrócić cykle patch management, bo okno między ujawnieniem a wykorzystaniem się kurczy.
+Źródło: https://www.anthropic.com/research/discovering-vulnerabilities-with-claude
 
 ## Implikacje praktyczne
-1. Multi-tenant inferencja (dezagregowany SGLang, współdzielony KV cache) wymaga testów izolacji tenantów na granicach kontekstu i kontroli rozmiaru puli KV; incydent Cloudflare pokazuje, że walidacja statusów HTTP nie wystarcza.
-2. Kapitał stał się ograniczeniem budowy DC: Alphabet wydaje więcej niż generuje (emisje 28,7 mld USD not i 12,4 mld USD akcji), Meta planuje 95 mld USD; w kontraktach capacity zawierać klauzule wyjścia, step-in i dywersyfikować dostawców.
-3. Ryzyko kontrahenta neocloudów (CoreWeave ~15% yield, 4,4 mld USD do refinansowania do końca 2026): nie koncentrować treningu na jednym dostawcy bez przenośnej warstwy (K8s + vLLM/llm-d) i bez kopii checkpointów poza dostawcą.
-4. TPU na OCI od 2027 otwiera drugą ścieżkę wobec CUDA; planować przenośność (JAX/XLA vs PyTorch/CUDA) już teraz, jeśli horyzont 3–5 lat zakłada negocjacje cenowe z NVIDIA (licencje per GPU).
-5. Tożsamości i dostęp uprzywilejowany (SIEM, urządzenia sieciowe, DaaS, agenci) przechodzą na model krótkożyjących uprawnień JIT; zakładać kompromitację narzędzi bezpieczeństwa (FortiSIEM) i projektować segmentację oraz rotację poświadczeń kolektorów.
+1. Firmware jako warstwa zaufania: budżetować cykliczne aktualizacje UEFI/BMC i atestację (measured boot) w całej flocie; PXE tylko w izolowanych VLAN-ach provisioningu.
+2. Dywersyfikacja akceleratorów (GPU+TPU, JAX/XLA obok CUDA) jako koszt portowania w zamian za negocjacyjność – planować abstrakcję warstwy serwującej.
+3. Tożsamość jako główny wektor: wyłączyć device code flow, wymusić passkeys/token protection do 2027.
+4. Migracja PQC wg NIST IR 8547 (2030/2031): inwentaryzacja kryptografii w sprzęcie sieciowym i PKI już teraz.
+5. Łańcuch dostaw sprzętu DC: ubezpieczenie, weryfikacja przewoźników i chain of custody; ryzyko firmware z nieautoryzowanych źródeł.
 
 ## Trend tygodnia
-Tydzień pokazuje, że ograniczeniem rozwoju infrastruktury AI przesuwa się z dostępności GPU na koszt i dostępność kapitału. Alphabet i Microsoft osiągają przyspieszenie chmury (Google Cloud 30,7 mld USD, Azure +48%), ale tylko Microsoft pokrywa capex z operacyjnego cash flow; Alphabet i Meta sięgają po emisje, a CoreWeave płaci około 15% rentowności za dług. Równolegle Google otwiera TPU poza własną chmurą (Oracle 2027), co osłabia monopol CUDA, lecz dopiero w kolejnych latach. Na froncie bezpieczeństwa błędy przesuwają się do warstw współdzielonych: KV cache w inferencji multi-tenant, tokeny aplikacji mobilnych i systemy zarządzające (SIEM, DaaS) dają jeden punkt kompromitacji wielu tenantów. Obrona także się automatyzuje: deception przeciw agentom (context bombs) i dostęp JIT dla agentów to odpowiedź na tanie ataki prowadzone przez LLM. Wspólny mianownik: skala i współdzielenie zasobów zwiększają zarówno efektywność, jak i promień rażenia pojedynczej awarii lub decyzji finansowej.
+Rynek infrastruktury przesuwa się z pojedynczej zależności od NVIDIA w stronę wielu dostawców mocy: TPU na OCI od 2027, plany zakupu TPU przez OpenAI i równoczesna rozbudowa Vera Rubin w tej samej chmurze. Jednocześnie finansowanie budowy DC staje się zmienną krytyczną, bo nawet silni hyperscalerzy emitują dług i akcje, co przenosi ryzyko na cenę i warunki kontraktów. Po stronie bezpieczeństwa dominują dwa wektory: poniżej systemu (UEFI/PXE) oraz tożsamość (device code phishing, tokeny), przy czym AI skraca czas odkrywania luk, także w OT. Koncentracja dostawców (prospekt Anthropic, zależność od partnerów chmurowych) pokazuje, że odporność trzeba projektować na poziomie zakupowym i architektonicznym. Wreszcie koszty licencyjne (Broadcom/VMware) nadal wypychają edge ku open source, kosztem narzędzi zarządzania flotą.
 
 ## To obserwować
-1. Refinansowanie 4,4 mld USD CoreWeave i yield obligacji 2030/2032.
-2. Raporty Amazon Q3 oraz guidance capex Alphabet/Microsoft z call'ów (potwierdzenie wyliczeń z newslettera).
-3. Dostępność i ceny TPU na OCI oraz niezależne benchmarki TPU 8. generacji.
-4. Poprawki FortiSIEM 7.5.1+ i dowody eksploatacji CVE-2026-106173 (CISA KEV).
-5. Ceny spot Nebius względem CoreWeave/Lambda i zmiany w publicznym cenniku GPU-h.
+- Poprawki firmware dla CVE-2026-97631 od Dell/HPE/Lenovo/Supermicro i ewentualne wpisy w CISA KEV.
+- Potwierdzenie (lub dementi) zakupu TPU przez OpenAI oraz terminy TPU na OCI.
+- Refinansowanie 4,4 mld USD długu CoreWeave i rentowność obligacji 2032 (~15%).
+- Warunki i harmonogram Vera Rubin na OCI (GW, PPAs).
+- Wygaszanie SMS MFA w Entra (luty 2027) i adopcja passkeys.
