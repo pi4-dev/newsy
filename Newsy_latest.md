@@ -1,48 +1,37 @@
-# Newsy — 2026-11-01
+# Newsy — 2026-11-02
 
-**Okno przyrostowe:** od raportu 2026-10-31 do 2026-11-01. Pominięte sekcje: raport technologiczny, AI-ML, euro neocloud, AI for networking (brak nowych wiarygodnych pozycji; wyszukiwarka WWW zwraca głównie materiały nieaktualne, RSS HPCwire niedostępny – 403; Marvell/Lumentum bez oficjalnego potwierdzenia). Dzień wolny (niedziela).
+**Okno przyrostowe:** od raportu 2026-11-01 do 2026-11-02. Pominięte sekcje: raport technologiczny, AI-ML, euro neocloud, AI for networking (brak nowych, zweryfikowanych pozycji; wyszukiwarka WWW zwraca głównie materiały starsze; RSS SemiAnalysis/NVIDIA bez nowych wpisów poza już opisanymi).
 
 ## Ryzyka rynku AI/GPU
 
-#### Capex hyperscalerów vs operating cash flow (Q3): przekroczenie przepływów operacyjnych
-(FINANSE) Wg newslettera The Business Engineer (liczone z raportów kwartalnych, „by our arithmetic"): Alphabet 51,4 mld USD capex vs 42,3 mld USD OCF (121%), Amazon 77,3 mld vs 42,4 mld (ok. 1,8x, 48,1 mld USD nowego długu w kwartale), Microsoft 39,4 mld vs 58,0 mld (68%). S&P zmienił perspektywę Meta na negatywną. AWS +39% r/r do 46,0 mld USD, capex 2026 ok. 220 mld USD. Finansowanie budowy przesuwa się z rachunku wyników na bilans (dług, leasingi niestartowane, gwarancje) – wrażliwość na koszt długu rośnie. Źródło wtórne (newsletter), liczby do weryfikacji w filingach.
-Źródło: https://businessengineer.ai/p/this-week-in-the-ai-supercycle-anthropics
-
-#### Selektywność kapitału: spread MSFT ~64 pb, raportowany rating poniżej investment grade dla Anthropic, OpenAI tnie rundę
-(FINANSE/POPYT) Microsoft sprzedał 25 mld USD obligacji ok. 64 pb nad Treasuries; Blackstone miał zapowiedzieć inwestorom rating poniżej investment grade dla Anthropic; OpenAI (wg FT/WSJ) pozyskał „mniej niż połowę" celu 30 mld USD, ok. 20 mld przy wycenie 1,25 bln (cel 1,4 bln). Koncentracja popytu: top 5 klientów Anthropic ≈25% przychodów (pierwszy publiczny filing), jeden klient AI = 34,5% przychodów SpaceX w Q3. Dla neocloudów kontraktujących pod laboratoria oznacza to wyższy koszt refinansowania i ryzyko kontrahenta. Wszystko raportowane, niepotwierdzone przez strony.
-Źródło: https://businessengineer.ai/p/this-week-in-the-ai-supercycle-anthropics
-
-#### Pamięć jako ograniczenie: marże SK hynix 80% (operating), Sandisk 85% gross
-(DOSTAWY/EKONOMIKA) SK hynix operating margin 80%, Sandisk przychód 11,0 mld USD (+378% r/r, DC 4,8 mld USD) przy 85% marży brutto. Sprzedawcy komponentów (HBM/NAND) przejmują marżę, co podnosi BOM serwerów AI i koszt capacity planningu; kontrakty wieloletnie i alokacje stają się ważniejsze niż cena spot.
-Źródło: https://businessengineer.ai/p/this-week-in-the-ai-supercycle-anthropics
+#### Pipeline DC 2028: 62,2 GW netto w USA głównie przed rozpoczęciem budowy, ryzyko zamrożenia pozwoleń w Teksasie
+(INFRASTRUKTURA) Wg modelu SemiAnalysis ok. 3/4 z 33,8 GW zaplanowanych na 2027 w top-20 stanów jest już w budowie, więc 2027 jest w dużej mierze zabezpieczony. Ryzyko dotyczy 2028: 62,2 GW netto, z czego 43,5 GW (70%) w 13 stanach, a 10 z nich wybiera gubernatora 3.11. Teksas (~30% GW 2028) ma zamrożone pozwolenia TCEQ od 21.09 oraz audyt kolejki przyłączeniowej ERCOT od 3.08 (raport ERCOT docelowo 10.12; samo złożenie raportu nie wznawia wydawania pozwoleń). Oregon rozszerzył 9.10 zamrożenie na pozwolenia powietrzne i zrzutowe do 1.07.2027. Scenariusz z wygraną kandydatów za moratorium: ok. 30 GW pipeline 2028 w ryzyku, przy kandydatach tylko „warunkowych" ok. 5,7 GW. Opóźnienie o 5–9 miesięcy względem restartu w grudniu, jeśli pozwolenia pozostaną wstrzymane do końca sesji legislacyjnej (12.01–31.05.2027). Dla neocloudów i kontraktów pod dostawy 2027/28: ryzyko opóźnień dostaw mocy (kary SLA, odroczone przychody przy już zaciągniętym długu). Źródło: newsletter (analiza własnego modelu, kandydaci „at face value").
+Źródło: https://newsletter.semianalysis.com/p/the-datacenter-backlash-goes-bipartisan
 
 ## Newsletters summary
 
-#### NVIDIA Dynamo na Kubernetes: zwalidowany runtime
-Dynamo (rozproszona inferencja na wielu GPU) wymaga zintegrowanego stosu: sterowniki GPU, alokacja zasobów, scheduling, sieć i monitoring. Wpis opisuje zwalidowaną ścieżkę od konfiguracji modelu do endpointu.
-**Analiza:** Kluczowe dla throughput/latency jest topologia sieci (RDMA/NVLink) i gang scheduling disaggregated prefill/decode; ryzyko lock-in w stos NVIDIA. Przed produkcją sprawdzić zgodność wersji operatora GPU, DRA i obserwowalność na poziomie GPU. Treść znana tylko z podsumowania n8n, nie z pełnego wpisu.
-Źródło: https://developer.nvidia.com/blog/build-a-validated-kubernetes-runtime-for-nvidia-dynamo/
+#### SemiAnalysis: backlash wobec datacenter staje się dwupartyjny — 2027 zablokowane, 2028 niepewne
+Warunki, nie zakaz: 15 kandydatów postuluje pokrywanie przez DC kosztów sieci, 12 koniec ulg podatkowych, 11 raportowanie/limit zużycia wody. Najsilniejsze dźwignie: zwolnienia z podatku od sprzętu (potencjalnie miliardy USD na GW), komisje regulujące taryfy (depozyty, minimum bills, opłaty wyjścia), gubernatorzy mogą wstrzymać niewydane pozwolenia.
+**Analiza:** Dla planowania mocy: hyperscalerzy udźwigną koszt (własna generacja, opłaty za przyłącze), ale nie czas — przeniesienie projektu do innego stanu nie omija kolejki mocy i pozwoleń. Projektując lokalizacje, uwzględnić projekty z niewydanymi pozwoleniami na kolejną fazę zasilania; chłodzenie o niskim zużyciu wody zmniejsza ekspozycję regulacyjną. Wyniki wyborów 3.11 zmienią warunki, ale nie wstrzymają budów już rozpoczętych.
+Źródło: https://newsletter.semianalysis.com/p/the-datacenter-backlash-goes-bipartisan
 
-#### Francja: podatek €0,055 za GB wysyłany przez dostawców treści; Google w rozmowach o Golden Dome
-Dolna izba francuskiego parlamentu zagłosowała podatek od ruchu; CrowdStrike: grupa powiązana z Chinami uruchomiła agentów AI przeciw ponad 200 organizacjom (wg newslettera).
-**Analiza:** Podatek od wolumenu danych zmienia ekonomikę CDN/peeringu i dystrybucji dużych artefaktów (obrazy, wagi modeli) do UE – uwzględnić w kosztach egressu i lokalizacji cache. Ustawa nie jest jeszcze w mocy; ryzyko precedensu dla innych państw UE. Źródło wtórne.
-Źródło: https://businessengineer.ai/p/this-week-in-the-ai-supercycle-anthropics
-
-(Pominięte jako niedopasowane: NVIDIA edge AI quick-start.)
+#### SemiAnalysis GDPx: benchmark agentowy w 11 domenach — najlepszy model ok. 12%
+GDPx obejmuje m.in. chip design, cyber, bio, finanse, prawo, quant trading, software engineering. Wg autorów Opus 5.5 wygrywa all-around (quant, hardware/chip design), Gemini 4 Carbon bio i SWE, GPT-6 Astra RSI i materiały; zadania finansowe i prawne dają ~0% dla wszystkich modeli. Klasyfikatory bezpieczeństwa obniżają wynik w cyber/bio/alignment, a Muse Wonder Full jest wg nich najlepszy w cyber.
+**Analiza:** Dla doboru modeli w produkcji istotne są: front kosztu vs wydajności (Luna i DeepSeek na dole, Opus na górze, OpenAI w środku), oraz „spikiness" — model dobierać per domena, nie globalnie. Klasyfikatory bezpieczeństwa to ryzyko operacyjne (odmowy) przy zastosowaniach security. Wyniki autorskie, bez niezależnej replikacji; Gemini 4 Carbon jeszcze niedostępny GA.
+Źródło: https://newsletter.semianalysis.com/p/gdpx-measuring-frontier-model-capabilities
 
 ## Implikacje praktyczne
-1. Koszt kapitału zastępuje podaż chipów jako ograniczenie: w umowach z neocloudami zabezpieczać się na ryzyko kontrahenta (escrow, step-in, ekspozycja na GPU kupione z długu).
-2. Kontraktować pamięć/HBM z wyprzedzeniem; zakładać utrzymanie marż dostawców w BOM.
-3. Wielodostawcza strategia modeli: koncentracja klientów wokół kilku laboratoriów to ryzyko dla ich dostawców mocy.
-4. Egress i dystrybucja artefaktów do UE: uwzględnić ryzyko podatków od ruchu w TCO.
-5. Inferencja rozproszona (Dynamo/vLLM) – standaryzować runtime K8s i obserwowalność, ograniczając lock-in.
+1. Lokalizacje DC oceniać po statusie pozwoleń kolejnej fazy zasilania, nie tylko po umowie przyłączeniowej; klauzule opóźnień dostaw mocy w kontraktach z operatorami.
+2. Zakładać wzrost kosztu własnego zasilania (opłaty za sieć, utrata ulg) w TCO 3–5 lat.
+3. Chłodzenie bezwodne / niskie WUE jako zabezpieczenie przed regulacjami wodnymi.
+4. Multi-region i multi-dostawca dla pojemności inferencji; nie opierać planu 2028 na jednym stanie (Teksas).
+5. Dobór modeli per domena i monitorowanie odmów klasyfikatorów bezpieczeństwa w agentach security.
 
 ## Trend tygodnia
-Narracja budowy infrastruktury AI przesuwa się z historii wzrostu do historii kredytowej. Trzech z czterech największych budujących wydaje więcej niż generuje z operacji, więc różnicę pokrywają dług i leasingi. Rynek obligacji nadal przyjmuje najlepszych emitentów, ale podmioty o wąskiej bazie klientów (laboratoria) płacą wyraźnie więcej lub pozyskują mniej. Jednocześnie dostawcy pamięci zbierają marże bliskie 80%, co przenosi koszt na całą stawkę. Popyt rośnie (AWS +39%), więc ryzykiem nie jest brak popytu, lecz trwałość jego ekonomiki względem już podjętych zobowiązań. Regulacje (podatki od ruchu, kontrola danych) dodają kolejny wymiar niepewności. Wszystko wg źródła wtórnego – wymaga weryfikacji w filingach.
+Ograniczeniem budowy infrastruktury AI w USA przesuwa się z podaży chipów na zgodę administracyjną. Rok 2027 jest w większości zabezpieczony fizycznie, bo ok. trzy czwarte mocy jest w budowie. O 2028 zdecydują pozwolenia, taryfy i ulgi podatkowe, a nie dostępność GPU. Sprzeciw wobec DC jest dwupartyjny i dotyczy kosztów sieci, wody i ulg, więc każda lokalizacja zapłaci więcej, a część będzie czekać. Hyperscalerzy udźwigną koszt, lecz nie czas, co obciąża zwłaszcza podmioty z długiem pod terminowe uruchomienie mocy. Równolegle rośnie rozrzut jakości modeli między domenami, co wspiera wielomodelowe architektury zamiast jednego dostawcy.
 
 ## To obserwować
-- Oficjalne potwierdzenie transakcji Marvell/Lumentum i sposób finansowania.
-- Rating i warunki długu Anthropic oraz finalna kwota rundy OpenAI.
-- Stosunek capex/OCF hyperscalerów i perspektywy S&P (Meta).
-- Marże i alokacje HBM/NAND (SK hynix, Sandisk).
-- Losy francuskiego podatku od ruchu w Senacie.
+- Wyniki wyborów 3.11 (gubernatorzy TX, OH, AZ, GA) i ich stanowisko ws. moratoriów.
+- Termin raportu ERCOT (10.12) i decyzja TCEQ o wznowieniu pozwoleń.
+- Oregon: zamrożenie do 1.07.2027; sesja legislacyjna Teksasu (12.01–31.05.2027).
+- Publiczna dostępność Gemini 4 Carbon i niezależna weryfikacja GDPx.
