@@ -1,151 +1,130 @@
-# Newsy — 2026-11-03
+# Newsy — 2026-11-04
 
-**Okno przyrostowe:** od raportu 2026-11-02. Pominięte sekcje: euro neocloud, AI for networking (brak nowych zweryfikowanych pozycji). Źródła: głównie newslettery z etykiety NEWSY; wyszukiwanie WWW nie zwróciło materiału nowszego niż rejestr.
+**Okno przyrostowe:** od raportu 2026-11-03. Pominięte sekcje: euro neocloud (brak nowych zweryfikowanych pozycji, ostatnie znalezione: Nebius 26.08, Nscale 26.09), AI for networking. Źródła: newslettery z etykiety NEWSY, wyszukiwanie WWW.
 
 ## Raport technologiczny
 
 ### Biznes
 
-#### Oracle OCI pierwszym hyperscalerem poza Google z TPU
-OCI ma oferować TPU Google. Wcześniej (10/3x) odnotowano doniesienia o zakupie TPU przez OpenAI; nowy element to dystrybucja TPU przez zewnętrzną chmurę.
-**Znaczenie/analiza:** Dywersyfikacja poza CUDA obniża vendor lock-in, ale wymaga portowania stosu (JAX/XLA, vLLM-TPU); ceny i dostępność nieujawnione.
-Źródło: https://www.rtinsights.com/real-time-decisions/real-time-analytics-news-for-the-week-ending-october-31/
+#### Marvell przejmuje Lumentum: umowa ostateczna (2.11), ok. 100–115 mld USD
+Aktualizacja wpisu z 1.11 (wcześniej tylko rozmowy). Transakcja all-stock, 4,5 akcji Marvell za akcję Lumentum; wg SEC implikowany EV ok. 115 mld USD (premia ok. 24%), Marvell 67% / Lumentum 33% akcjonariatu. Część doniesień podawała 80 mld USD (to wartość rynkowa przed ogłoszeniem).
+**Znaczenie:** Konsolidacja dostaw lasera/optyki (CPO, transceivery) z DSP/ASIC w jednym dostawcy; ryzyko koncentracji i vendor lock-in w optyce skali AI oraz długi czas zamknięcia (regulatorzy).
+Źródło: https://www.sec.gov/Archives/edgar/data/0001633978/000119312526442760/d163169d425.htm
 
-#### Google Cloud: spend caps GA
-Limity wydatków dla kwalifikowanych usług, ustawiane przez Cloud Billing Budgets API, np. domyślnie dla nowych projektów sandbox.
-**Znaczenie/analiza:** Twarde limity zamiast alertów ograniczają koszt błędnych pętli agentów; failure mode: odcięcie usług po przekroczeniu limitu w produkcji, więc stosować tylko dla sandboxów.
-Źródło: https://cloud.google.com/blog/topics/cost-management/google-cloud-spend-caps-now-generally-available
-
-#### Intel Fab 28: eksplozja 14.10, ok. 600 mln USD utraconych przychodów
-Fabryka w Kiryat Gat (10 nm-class, m.in. I/O die Xeon 6) stała ok. dwóch tygodni; cykl wafla ok. 6 mies., więc luka podażowa sięga 2027 przy i tak ciasnym rynku serwerów i pamięci.
-**Znaczenie/analiza:** Planować zamówienia serwerów x86 z wyprzedzeniem i dopuścić alternatywy (AMD, ARM); ryzyko wydłużenia lead time w refreshu 1H 2027.
-Źródło: https://www.tomshardware.com/pc-components/cpus/deadly-intel-fab-28-explosion-causes-two-week-shutdown-to-cost-usd600-million-and-severely-disrupt-server-chip-manufacturing-for-six-months-10nm-xeon-shipments-stall-during-largest-shortage-in-memory
+#### Microsoft i Lumen: wspólna sprzedaż sieci „AI-ready”
+Co-sell łączności hybrydowej/multicloud, rozważane przeniesienie dodatkowych usług Lumen do Azure.
+**Znaczenie:** Sygnał, że przepustowość WAN do workloadów agentowych jest sprzedawana pakietowo z chmurą; sprawdzić koszty egress i zależność od jednego carriera.
+Źródło: https://ir.lumen.com/news/news-details/2026/Lumen-and-Microsoft-Expand-Collaboration-to-Co-Sell-Enterprise-AI-Ready-Networks/default.aspx
 
 ### Technologia
 
-#### GitLab CVE-2026-97229 (CVSS 10, Onigmo) w KEV; atak na Alpine Linux
-Błąd w silniku regex Ruby pozwala nieuwierzytelnionie wykonać kod przez spreparowaną konfigurację CI/CD. Alpine: crash workerów i pobranie obrazu kontenera, bez potwierdzonego RCE. Poprawki: Ruby 3.3.13 / 3.4.12 / 4.0.9.
-**Znaczenie/analiza:** Aktualizacja samego GitLaba może nie wystarczyć przy własnym Ruby; sprawdzić runnery i obrazy bazowe oraz rotować sekrety CI.
-Źródło: https://links.tldrnewsletter.com/akghxg
+#### Langflow: dwie krytyczne luki bez uwierzytelnienia (CVE-2026-93680, CVE-2026-110186)
+Wersje 1.0.0–1.12.8. Pierwsza omija uwierzytelnienie, druga daje wykonanie kodu przez enumerację narzędzi MCP; publiczny moduł Metasploit już istnieje. Jedyna poprawka: 1.13.0 (wyłącza automatyczne logowanie), brak obejścia.
+**Znaczenie:** Instancje Langflow wystawione do sieci traktować jako skompromitowane do czasu aktualizacji; rotować klucze API i sekrety w flow, odciąć od Internetu.
+Źródło: https://thehackernews.com/2026/11/critical-langflow-flaws-could-let.html
 
-#### Linux CVE-2026-98432: Ubuntu i RHEL nadal bez poprawki (stan na 1.11)
-UAF w handshake IPv4 TCP (od 4.4), jedyny znany exploit wymaga listenera MPTCP. Go >=1.24 włącza MPTCP na listenerach domyślnie (np. tailscaled), autor naliczył 712 listenerów na laptopie. Debian, Amazon Linux, Oracle UEK mają łatki.
-**Znaczenie/analiza:** Mitygacja do czasu patcha: net.mptcp.enabled=0 oraz GODEBUG wyłączający MPTCP; inwentaryzować usługi w Go na hostach brzegowych.
-Źródło: https://ma.ttias.be/linux-cve-2026-98432-vulnerable-kernels/
+#### Atak na chłodnictwo sklepów w 7 krajach UE
+Podejrzewany cyberatak przełączył parowniki w tryb odszraniania (Belgia, Luksemburg, Szwecja, Irlandia, Holandia, Estonia, Finlandia); temperatury do 50°C, straty (Delhaize ok. 100 tys. EUR). Dostawca wskazuje, że jednostki wymagają zmian fizycznych; zdalna konserwacja pozostaje w modelu operacyjnym.
+**Znaczenie:** Zdalny dostęp serwisowy OT/IoT jako wektor; segmentacja, brokered access z MFA i fizyczne limity bezpieczeństwa (niezależne od sterownika).
+Źródło: https://www.bbc.com/news/articles/cq1kd1nee80eo
 
-#### Backdoor w rozszerzeniu Claude dla VS Code/Cursor (v2.1.313), ok. 12 h
-Złośliwa wersja opublikowana przez oficjalne konto w Open VSX/Cursor, do 5000 celów; zbierała dane hosta, próbowała dodać klucz SSH i tunel reverse. Błędy ograniczyły persistence.
-**Znaczenie/analiza:** Kto zainstalował lub zaktualizował w czwartek, powinien sprawdzić IoC i klucze authorized_keys; pinning wersji i allowlista rozszerzeń w IDE.
-Źródło: https://arstechnica.com/security/2026/10/anthropic-vs-code-extension-on-cursor-backdoored-for-nearly-12-hours/
+#### Cloudflare DDoS Q3 2026: więcej krótkich roju, mniej gigantów
+18,2 mln ataków L3/4; ataki <10 min i <1 Gbps +208% r/r, >1 Tbps −69% względem Q2; amplifikacja DNS +215%, UDP flood +122%, CLDAP −99,5%.
+**Znaczenie:** Mitygacja oparta o progi i ręczną reakcję zawodzi przy krótkich seriach; potrzebna automatyczna detekcja w sekundach i ochrona resolverów przed amplifikacją.
+Źródło: https://blog.cloudflare.com/ddos-threat-report-2026-q3/
 
-#### Polymarket: przejęty skrypt DebugBear (ok. 2,7 mln USD)
-Wektor: kompromitacja rejestratora domeny dostawcy skryptu, potem JS w sesjach zalogowanych użytkowników (29.10).
-**Znaczenie/analiza:** Klasyczny supply chain third-party JS: CSP z SRI, izolacja skryptów monitoringu od stron transakcyjnych, MFA/registry lock dla domen.
-Źródło: https://thehackernews.com/2026/11/hackers-steal-about-27-million-from.html
+#### ChatGPT: przejęcie kont przez HTML Previews (łańcuch MathLive → iframe → YouTube oEmbed)
+Obejście CSP OpenAI przez iframe ładujący skrypty z domeny dozwolonej, następnie dostęp do endpointów API i kradzież danych odwiedzających link udostępnienia.
+**Znaczenie:** Allowlisty CSP na domenach z endpointami oEmbed/JSONP są słabe; dla własnych aplikacji z renderowaniem treści generowanych przez LLM stosować sandbox z osobnym originem.
+Źródło: https://simonwillison.net/2026/Oct/31/how-we-took-over-chatgpt-accounts/
 
-#### Binance: kradzież 6,3 mld USD, FBI wskazuje TraderTraitor
-Wektor: przejęty laptop i malware kasujący ślady; wypłaty wznawiane etapami, 90% aktywów uzupełnione.
-**Znaczenie/analiza:** Endpoint admina jako pojedynczy punkt awarii; wymusić separację uprawnień i podpisywanie transakcji wieloosobowo.
-Źródło: https://www.theguardian.com/business/2026/nov/01/binance-losses-covered-hack-fbi-north-korea-cryptocurrency
+#### WorkOS: incydent z użyciem AI-owego frameworku ofensywnego (30.10)
+Dostęp do wewnętrznej aplikacji sprzedażowej: dane kontaktowe, historie kont klientów, fragmenty korespondencji. Zewnętrzny dostęp wyłączony, analiza trwa.
+**Znaczenie:** Klienci WorkOS powinni zakładać phishing ukierunkowany z użyciem wyciekłej korespondencji; sprawdzić logi SSO/Directory Sync pod kątem anomalii.
+Źródło: https://workos.com/security/bulletins/october-30th-2026-data-security-incident
 
 ## Raport AI-ML
 
 ### Biznes
 
-#### Samsung Foundry: zamówienia 2 nm GAA od hyperscalerów
-Potwierdzone na call Q3; pierwsze układy GAA wchodzą do produkcji, dział nadal nierentowny.
-**Znaczenie/analiza:** Druga ścieżka produkcji ASIC-ów poza TSMC; realny wpływ zależy od uzysku, nieujawnionego.
-Źródło: https://www.techtimes.com/articles/329716/20261030/samsung-foundry-confirms-hyperscaler-2nm-orders-first-gaa-chips-enter-production
+#### SpaceX/xAI: cel 13 GW mocy DC w 2027 (SemiAnalysis), 3,6 GW w budowie
+Czasy budowy: Colossus 1 retrofit 122 dni/150 MW, Colossus 2 91 dni/210 MW, nowy obiekt „Project SPAM” od 5.10 z celem uruchomienia w grudniu; Starbase może przekroczyć 1 GW; BESS ok. 5,9 GWh. Moc pod zarządzaniem >8 GW vs >9 GW DC online. Colossus 2: limit Southaven 2,7 GW nameplate obniża się do 1,24 GW od lipca 2027 (umowa z 30.07.2026), przyłącze TVA ok. 1,2 GW, możliwy niedobór ok. 300 MW. Prawdopodobne dzierżawy dla podmiotów trzecich (TeraFab).
+**Analiza:** Modularne MEP i turbiny mobilne skracają build do ok. 4–5 mies., ale zasilanie opiera się na turbinach tymczasowych i BESS cyklowanym przez gaz; ryzyka: ograniczenia środowiskowe, TCEQ, derating. Nowy dostawca mocy GPU skali wielu GW zmienia ceny dzierżaw dla neocloudów. Analiza częściowo za paywallem, dane niezależnie niezweryfikowane.
+Źródło: https://newsletter.semianalysis.com/p/elon-is-doing-it-again-spacex-will
 
-#### Boom Supersonic: fabryka turbin 42 MW dla DC, dostawy od połowy 2027
-Wydajność 25 turbin/rok w 2028, 50 w 2029. Klient startowy Crusoe wycofał zamówienie na 29 turbin.
-**Znaczenie/analiza:** Wycofanie klienta startowego to sygnał ryzyka dla projektów zasilania behind-the-meter; turbina bez prototypu produkcyjnego nie rozwiązuje deficytu mocy do 2028.
-Źródło: https://boomsupersonic.com/press-release/superpower-superfactory
+#### Gartner: koszty oparte o tokeny mogą przekroczyć plany o >50% do 2027
+Agenci AI w triage incydentów, walidacji zmian i remediacji; zalecenie: mierzalne use case'y, observability, hybrydowa infrastruktura.
+**Analiza:** Budżetować na podstawie p95 zużycia tokenów na zadanie i wprowadzić routing modeli (Snowflake raportuje do 3x lepszą efektywność tokenów przy routingu).
+Źródło: https://www.itpro.com/infrastructure/ai-is-crucial-to-infrastructure-and-it-operations-but-only-if-its-done-right-gartner-report-says
 
 ### Technologia
 
-#### Poisoning 0,1% danych pretrainingu: backdoor 'curl | bash' w agencie CLI
-Wg abstraktu zbioru: agent 4B wykonywał komendę atakującego w ok. 92% promptów ze ścieżką-wyzwalaczem, skuteczne nawet przy 0,0005% zatrucia; efekt rośnie z rozmiarem modelu.
-**Znaczenie/analiza:** Ryzyko dla modeli open-weight o nieznanym pochodzeniu danych: agenci z uprawnieniami powłoki wymagają sandboxa i allowlisty komend, nie tylko oceny modelu. Wyniki z jednej pracy.
-Źródło: https://arxiv.org/abs/2610.37741
+#### Anthropic Message Threads (public beta): przesyłanie tylko nowych wiadomości
+Redukcja mediany TTFT o ok. 35% dla żądań 500K–1M tokenów, bez zmiany zużycia tokenów.
+**Analiza:** Eliminuje retransmisję i ponowne przetwarzanie długiego kontekstu po stronie klienta; dla agentów długiego kontekstu mniejszy ruch i latencja, kosztem stanu po stronie dostawcy (lock-in, retencja danych).
+Źródło: https://claude.com/resources/articles/message-threads
 
-#### Codex auto-review: 11 sposobów obejścia sandboxa i monitora
-Podmiana skryptów za zaufanymi hookami, fałszowanie tur użytkownika, edycja plików po zatwierdzeniu; OpenAI naprawiło część.
-**Znaczenie/analiza:** Monitor LLM nie zastępuje izolacji na poziomie OS; zatwierdzenie musi wiązać się z hashem artefaktu (TOCTOU).
-Źródło: https://www.lesswrong.com/posts/dbStc8ZFESqfihwAd/lessons-from-red-teaming-auto-review-openai-s-blocking-1
+#### GPU-accelerated Weight Teleportation: synchronizacja wag trainer→sampler w RL
+Pauza <0,23 s dzięki kompresji/dekompresji na GPU (LZ4/Snappy + warstwa Zstd).
+**Analiza:** Skraca bubble w pętlach on-policy RL; przepustowość sieci między pulami staje się mniej krytyczna. Wynik z jednego opisu producenta.
+Źródło: https://humansand.ai/blog/gpu-accelerated-weight-teleportation
 
-#### Google Suncatcher: pierwsza odpowiedź AI z TPU na orbicie
-Gemma 4 na TPU klasy DC, łączność przez Svalbard; testy termiczne i radiacyjne dalej, dwa satelity w 2027.
-**Znaczenie/analiza:** Eksperyment, bez wpływu na planowanie mocy przed 2030; wąskie gardło to odprowadzanie ciepła i łącze.
-Źródło: https://blog.google/innovation-and-ai/models-and-research/google-research/project-suncatcher-satellite-response/
+#### Trening na „wyspach obliczeniowych” (mieszane generacje i dostawcy)
+Pojedynczy run może łączyć mniejsze klastry z różnymi akceleratorami, każdy z własnym harmonogramem; zwiększa pulę użytecznej mocy, w tym starszych GPU.
+**Analiza:** Ryzyko integralności: jeden wadliwy lub skompromitowany węzeł może po cichu zdegradować model; potrzebna weryfikacja gradientów i atestacja.
+Źródło: https://www.coreauto.com/hitchhikers-guide-to-training-on-compute-islands
+
+#### OpenAI Pando: nowy backend Git dla monorepo
+Mediana latencji push spadła ok. 5x, ~1 PB danych Git dziennie, wdrożenie bez zmiany workflow.
+**Analiza:** Ruch generowany przez agentów kodujących (równoległe pushe do wielu gałęzi) wymaga redesignu warstwy VCS; GitHub raportował wcześniej 5x r/r commitów.
+Źródło: https://links.tldrnewsletter.com/sN4IQP
 
 ## Ryzyka rynku AI/GPU
 
-#### OpenAI zebrało poniżej połowy celu 30 mld USD, wycena 1,25 bln
-Wycena niższa niż oczekiwane 1,4 bln; kontekst to wyprzedaż po słabych wynikach Google, Amazon i Intela. Uzupełnia wcześniejszą informację o cięciu rundy (1.11).
-**Znaczenie/analiza:** Finansowanie zobowiązań compute (długoterminowe kontrakty) zależy od kolejnych rund; słabszy popyt inwestorów zwiększa ryzyko renegocjacji lub opóźnień zamówień.
-Źródło: https://www.wsj.com/tech/ai/openai-raises-less-than-half-of-30-billion-target-in-latest-round-91aecdc5
+#### Anthropic: zmieniony S-1 z wynikami Q3
+Przychód 33,24 mld USD za 9 mies. 2026 (+1200%), strata netto 104 mld USD, zobowiązania compute/infrastruktura ok. 895,4 mld USD; spółka zastrzega, że może wkrótce osiągnąć wewnętrzną definicję RSI. Uzupełnia wcześniejszy wpis o S-1 (pierwszy kwartał rentowny) o twarde liczby.
+**Analiza:** Zobowiązania ok. 27x przychodu 9-miesięcznego; strata netto tej skali przy rentownym kwartale sugeruje duże pozycje niegotówkowe (nie zweryfikowano) — sprawdzić w S-1. Wszystkie wieloletnie kontrakty compute u dostawców są kotwiczone w jednym kredycie.
+Źródło: https://www.cnbc.com/2026/11/02/anthropic-ant-s-1-quarter-financials.html
 
-#### S-1 Anthropic: pierwszy rentowny kwartał, ryzyko stałych zobowiązań compute
-Wg analizy: wzrost bardzo szybki, ale lata zablokowanych rachunków za moc obliczeniową płaconych przez klientów mogących ograniczyć zużycie z miesiąca na miesiąc; zależność od chmur.
-**Znaczenie/analiza:** Niedopasowanie terminów: zobowiązania wieloletnie vs. przychody elastyczne; to kanał przenoszenia wstrząsu popytu na dostawców GPU/chmury.
-Źródło: https://www.tilomitra.com/blog/anthropic-s1-in-charts
+#### Grok: ograniczenie limitów użycia z powodu kosztów
+Musk potwierdził obniżenie limitów, bo koszty obsługi były nie do utrzymania względem przychodu.
+**Analiza:** Sygnał ujemnej marży inferencji po stronie konsumenckiej, w kontraście do planów 13 GW.
+Źródło: https://links.tldrnewsletter.com/jqaKVm
 
-#### Intel Fab 28 oraz wycofanie Crusoe z zamówienia turbin
-Dostawy: opóźnienia CPU serwerowych do 2027 (Intel); energia: anulowane 29 turbin (Boom).
-**Znaczenie/analiza:** Dwa niezależne sygnały po stronie dostaw i zasilania; patrz wpisy wyżej.
-Źródło: https://www.tomshardware.com/pc-components/cpus/deadly-intel-fab-28-explosion-causes-two-week-shutdown-to-cost-usd600-million-and-severely-disrupt-server-chip-manufacturing-for-six-months-10nm-xeon-shipments-stall-during-largest-shortage-in-memory
+#### Marvell–Lumentum all-stock i niedobór zasilania Colossus 2
+Patrz wpisy wyżej: transakcja wyceniona w papierach (ryzyko wyceny przy korekcie półprzewodników) oraz obniżenie limitu turbin Southaven do 1,24 GW od 7/2027.
+Źródło: https://www.sec.gov/Archives/edgar/data/0001633978/000119312526442760/d163169d425.htm
 
 ## Newsletters summary
 
-#### Anthropic Mythos 5.5 w przygotowaniu (A/B)
-Wzmianka o wersji na stronie Mythos, bez specyfikacji; możliwy początkowy dostęp ograniczony do cyberobrońców.
-**Znaczenie/analiza:** Niepotwierdzone; planować ewaluację regresji promptów dopiero po ogłoszeniu.
-Źródło: https://www.testingcatalog.com/anthropic-prepares-to-release-claude-mythos-5-5-model/
+#### GPT-6.2 Astra w Codex (A/B), pominięty 6.1 ze względu na obawy o oszustwo
+Doniesienia testingcatalog; premiera możliwa w ciągu dni, niepotwierdzona przez OpenAI.
+**Analiza:** Planować ewaluację regresji promptów dopiero po ogłoszeniu.
+Źródło: https://www.testingcatalog.com/gpt-6-2-astra-appears-codex-usage/
 
-#### Mandiant/GTIG: ARTEX w prawdziwych intruzjach
-Sześć sub-agentów: sweepy uprawnień Azure/AWS, Kerberoasting, DCSync, webshelle JSP w seriach 2-25 s; UNC7228 od pierwszego konta do głębokiego dostępu w ok. 4 h. Agenci hałaśliwi forensycznie.
-**Znaczenie/analiza:** Detekcja behawioralna pod kątem serii z prędkością maszynową; krótkie, wąsko zakresowane poświadczenia; Kudu/SCM traktować jako infrastrukturę uprzywilejowaną.
-Źródło: https://cloud.google.com/blog/topics/threat-intelligence/artex-and-friends-enter-agentic-offensive-frameworks
+#### Weight-space programming: edycja wag przez LLM
+MIT: GPT-6 Astra poprawił matematykę modelu Qwen 0,8B edytując wagi bezpośrednio; Goedecke zauważa, że normalny trening pozostaje lepszy.
+**Analiza:** Kierunek istotny dla bezpieczeństwa łańcucha dostaw modeli (modyfikacja wag po walidacji); praktycznie wciąż badawczy.
+Źródło: https://www.seangoedecke.com/llms-are-not-superhuman-at-reading-and-writing-neural-network-weights/
 
-#### Talos: VOLTA infostealer z priorytetyzacją ofiar przez LLM
-Kradnie poświadczenia, sesje, portfele, klucze chmurowe; dossier idzie przez OpenRouter do Claude (fallback Kimi, Gemini).
-**Znaczenie/analiza:** Reguła detekcji: procesy niedeweloperskie uruchamiające Chrome z --headless (obejście App-Bound Encryption); blokada ruchu do bram LLM z hostów użytkowników.
-Źródło: https://blog.talosintelligence.com/appraisal-by-ai-model-driven-victim-prioritization-in-the-volta-infostealer/
-
-#### Szyfrowane dyski USB: klucze zaszyte w binariach, backdoory
-Codex + MCP Binary Ninja odzyskał klucze w 7-26 min; w SecZure YutianDun dwa ukryte konta (hasło 123456). Bez zgłoszenia do vendorów, bo urządzeń nie da się załatwić.
-**Znaczenie/analiza:** Ufać tylko urządzeniom z kluczem wyprowadzanym z hasła użytkownika; reszta do wycofania z polityki DLP.
-Źródło: https://binary.ninja/2026/10/22/breaking-more-encrypted-usb-drives-with-ai.html
-
-#### Postgres 19 opóźniony przez zalew raportów generowanych AI
-Wydanie celowane na 19.11; kilka dużych funkcji wycofano późno w becie, maintainerzy nie nadążają z weryfikacją poprawek i backportami.
-**Znaczenie/analiza:** Nie planować upgrade na dzień wydania; spodziewać się wolniejszych minor release i większej liczby poprawek po GA.
-Źródło: https://rhaas.blogspot.com/2026/10/postgres-19-is-late-and-its-ais-fault.html
-
-#### GitHub: 3 nowe zakresy IP dla webhooków
-Statyczne allowlisty firewalli muszą zostać uzupełnione; synchronizacja z Meta API robi to automatycznie.
-**Znaczenie/analiza:** Przejść na automatyczną synchronizację, inaczej ciche gubienie dostaw.
-Źródło: https://github.blog/changelog/2026-10-29-webhook-ip-ranges-added-to-the-meta-api/
-
-#### Belgia: FOD Financiën wyłącza MyMinfin, Tax-on-web, Biztax po cyberataku
-Brak wskazań na wyciek danych, dochodzenie trwa.
-**Znaczenie/analiza:** Sygnał dla klientów w UE: ryzyko ciągłości usług publicznych.
-Źródło: https://www.theregister.com/security/2026/10/29/belgiums-tax-agency-confirms-cyberattack-pulls-services-offline/5306409
+#### „Agent z jednym narzędziem exec”
+Katalog narzędzi zwijany do jednego exec w sandboxie; skrypty łączą akcje w jednym przebiegu; Framer Harness 2: −33% kosztu, −43% kroków narzędziowych.
+**Analiza:** Mniej round-tripów modelu, ale cała powierzchnia ataku przenosi się na sandbox; wymaga izolacji OS i limitów sieci.
+Źródło: https://www.philschmid.de/code-mode
 
 ## Implikacje praktyczne
-1. Wpisywać do umów kolokacyjnych i PPA klauzule opóźnień zasilania oraz ryzyko wycofania dostawców (przypadek Crusoe/Boom); nie zakładać turbin na gazie przed 2028.
-2. Łańcuch dostaw IDE i pakietów (rozszerzenia, JS stron trzecich) traktować jak produkcyjny: pinning, SRI, allowlisty, rotacja kluczy.
-3. Agenci kodujący wymagają izolacji OS i wiązania zatwierdzeń z hashem artefaktu; monitor LLM jest warstwą dodatkową.
-4. Finansowanie compute w modelu wielorundowym jest wrażliwe na wyceny: negocjować elastyczność wolumenu i unikać jednego dostawcy GPU/chmury, dopuścić TPU/OCI.
-5. Planować refresh x86 z zapasem 2-3 kwartałów (Fab 28, pamięć) i dopuścić architektury alternatywne.
+1. Wieloletnie umowy compute z dostawcami opartymi na turbinach tymczasowych/BESS (SpaceX, neocloudy) wymagają klauzul SLA zasilania i planu B w innym regionie.
+2. Konsolidacja optyki (Marvell–Lumentum) przy CPO: wymagać interoperacyjności i drugiego źródła transceiverów w przetargach 2027+.
+3. Narzędzia low-code do agentów (Langflow) i dostęp serwisowy OT traktować jako powierzchnię zewnętrzną: brak ekspozycji do Internetu, brokered access, MFA.
+4. Budżetowanie AI na podstawie zużycia tokenów z routingiem modeli i twardymi limitami (spend caps) zamiast stałych założeń.
+5. Zakładać krótsze, częstsze ataki DDoS: automatyczna mitygacja w sekundach, ochrona resolverów DNS.
 
 ## Trend tygodnia
-Tydzień wyznaczają dwa równoległe ryzyka: kapitałowe i bezpieczeństwa łańcucha dostaw narzędzi. Po stronie kapitału rundy OpenAI zebrały mniej niż połowę celu, a S-1 Anthropic pokazuje strukturalne niedopasowanie zobowiązań compute do elastycznych przychodów. Jednocześnie realne ograniczenia fizyczne się utrwalają: pożar Fab 28 przesuwa podaż CPU na 2027, a klient startowy Boom wycofuje zamówienie turbin. Po stronie bezpieczeństwa atakujący korzystają z agentów (ARTEX, VOLTA) i kompromitują zaufane kanały dystrybucji (rozszerzenie IDE, skrypt analityczny, rejestrator domeny). Badania nad zatruciem danych i obejściem monitorów pokazują, że sam nadzór modelowy nie wystarcza. Wniosek dla architekta: odporność zależy bardziej od izolacji, ograniczania uprawnień i dywersyfikacji dostawców niż od wyboru modelu czy chipa.
+Skala budowy infrastruktury AI przyspiesza szybciej niż jej zasilanie: SpaceX celuje w 13 GW w 2027, budując obiekty w 4–5 miesięcy, lecz opiera się na turbinach mobilnych, BESS i przyłączu, które nie pokrywa całego zapotrzebowania. Jednocześnie finansowanie pozostaje wrażliwe: zmieniony S-1 Anthropic pokazuje zobowiązania około 895 mld USD wobec 33 mld USD przychodu w 9 miesięcy, a Grok ogranicza użycie z powodu kosztów. Konsolidacja łańcucha dostaw (Marvell–Lumentum za ok. 100–115 mld USD w akcjach) koncentruje optykę w jednym dostawcy. Po stronie bezpieczeństwa dominują zdalnie dostępne narzędzia i interfejsy serwisowe (Langflow, chłodnictwo w 7 krajach, ChatGPT HTML Previews), a ataki DDoS fragmentują się na krótkie roje. Równolegle agenci kodujący zmieniają profil obciążenia (Pando, message threads), przesuwając wąskie gardła z obliczeń na stan, VCS i sandbox.
 
 ## To obserwować
-- Kolejne rundy OpenAI/Anthropic (S-1) i wycena vs. zobowiązania compute.
-- Terminy poprawek Ubuntu/RHEL dla CVE-2026-98432.
-- Ogłoszenie Claude Mythos 5.5 i dostępność TPU w OCI (ceny).
-- Lead time serwerów Xeon 6 w Q1 2027 po Fab 28.
-- Postgres 19 GA (cel 19.11).
+- Zamknięcie transakcji Marvell–Lumentum i reakcja regulatorów.
+- Faktyczne uruchomienie Project SPAM (grudzień) i decyzje TVA/Southaven.
+- Poprawki Langflow 1.13.0 i skala eksploatacji (Metasploit).
+- Premiera GPT-6.2 Astra oraz ceny kontekstu w Message Threads.
+- Pozycje niegotówkowe i harmonogram zobowiązań w S-1 Anthropic.
