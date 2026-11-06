@@ -1,140 +1,114 @@
-# Newsy — 2026-11-05
+# Newsy — 2026-11-06
 
-**Okno przyrostowe:** od raportu 2026-11-04. Pominięte sekcje: euro neocloud (brak nowych zweryfikowanych zdarzeń; najnowsze: Nebius publiczny spot pricing 21.10 – poza oknem), AI for networking (brak nowych wiarygodnych pozycji). Źródła: newslettery z etykiety NEWSY, RSS NVIDIA, wyszukiwanie WWW.
+**Okno:** od raportu 2026-11-05. Pominięte sekcje: euro neocloud, AI for networking, Ryzyka rynku AI/GPU (brak nowych zweryfikowanych informacji; wyszukiwanie WWW nie zwróciło materiałów z okna). Źródła: newslettery z etykiety NEWSY.
 
 ## Raport technologiczny
 
-### Biznes
-
-#### Bull i Schwarz Digits: europejski stos Sovereign AI (STACKIT + Bull)
-Umowa na infrastrukturę AI dla sektorów regulowanych: chmura STACKIT, sprzęt Bull, chłodzenie cieczą i oprogramowanie AI. Brak ujawnionej skali GPU, terminów i cen.
-**Znaczenie:** Kolejna opcja on-prem/sovereign w UE; do oceny dopiero po publikacji SLA, dostępności GPU i modelu cenowego. Ryzyko lock-in w jednym stosie.
-Źródło: https://www.itpro.com/infrastructure/bull-and-schwarz-digits-are-teaming-up-to-create-a-franco-german-foundation-for-sovereign-ai
-
-#### Apple: koszty pamięci „bezprecedensowe”, zobowiązania zakupowe +33 mld USD w kwartale
-Zobowiązania produkcyjne 89,7 mld USD; marża XII 45–46%; wzrost cen pamięci utrzyma się w IV kw. i dalej.
-**Znaczenie:** Presja cenowa DRAM/HBM przekłada się na koszt serwerów (RAM-heavy inference, CXL); w przetargach 2027 zakładać wzrost ceny pamięci i dłuższe terminy dostaw.
-Źródło: https://www.tomshardware.com/pc-components/dram/apple-faces-unprecedented-memory-cost-increases-as-ram-prices-continue-to-surge-manufacturing-bill-climbs-by-usd33-billion-rising-component-expenses-threaten-margins-through-the-holiday-quarter-and-into-2027
-
 ### Technologia
 
-#### CVE-2026-98432: zdalny RCE w Linux TCP (IPv4, opcje Record Route/Timestamp), CVSS 9.8
-Use-after-free w obsłudze TCP; wyścig przy pakietach z opcjami IP wysłanych na port nasłuchujący. Red Hat wydał poprawki (RHEL 8/9/10, wymagany reboot), Ubuntu – poprawki w testach. Brak zgłoszonej eksploatacji. Reguła nftables odrzucająca IPv4 TCP z opcjami IP ogranicza, ale nie eliminuje ryzyka.
-**Znaczenie:** Priorytet patchowania hostów wystawionych do Internetu (LB, bastiony, K8s node ports); planować rolling reboot. Na brzegu rozważyć filtrowanie pakietów z opcjami IP (zwykle nieużywanymi) w ACL/edge firewall.
-Źródło: https://thehackernews.com/2026/11/red-hat-patches-98-rated-linux-tcp-rce.html
+#### Greeter: chiński framework eksploatuje Flowise (CVE-2024-58351) – infrastruktura AI jako cel
+Era Security śledziła od lipca do października framework wykorzystujący code injection w overrideConfig/javascriptFunction we Flowise; każdy request „hello” niósł inną komendę, bez modyfikacji zapisanego chatflow (utrudnia detekcję po konfiguracji). Po wejściu: rekonesans hosta, kradzież .env, kluczy SSH i kluczy szyfrujących Flowise, odpytywanie metadata AWS/Azure/GCP, sprawdzanie dostępu do Docker socket, capabilities i ścieżek persistence. Z 3277 widocznych instancji 703 bez uwierzytelniania, 46 spełniało warunki podatności.
+**Znaczenie/Analiza:** Narzędzia low-code do agentów traktować jak usługi wystawiające RCE: nie wystawiać do Internetu, wymusić auth, blokować IMDS (IMDSv2, hop limit 1), nie montować Docker socket, rotować sekrety po ekspozycji.
+Źródło: https://era.security/blog/greeter-flowise-ai-infrastructure-attack
 
-#### XCPE: botnet 1,3 mln dekoderów Android TV (Videostrong) jako residential proxy
-Google przejął domeny i serwery operatora; może to odciąć >10 mln kolejnych zainfekowanych urządzeń (także telehealth, karaoke, digital signage). Urządzenia wynajmowały łącze użytkowników usługom proxy i generowały ad fraud.
-**Znaczenie:** Ruch z residential proxy omija reputacyjne listy IP; w WAF/anti-bot oprzeć się na sygnałach behawioralnych, nie na ASN. W sieciach firmowych segmentować i blokować IoT/TV z preinstalowanym malware.
-Źródło: https://krebsonsecurity.com/2026/11/tech-firms-dismantle-botnet-that-turned-1-3m-tv-boxes-into-proxies/
+#### Atak na dostawcę chłodnictwa: zmiana nastaw w magazynach osocza EFS (Francja), kontrolery Danfoss AK-SM/AK-SC
+Przez kompromitację dostawcy zmieniono nastawy komór chłodniczych z -30°C na 110°C; monitoring EFS wykrył zmianę, produkty przeniesiono, bez strat. Wcześniej podobne ataki na chłodnictwo supermarketów (zmiany cykli odszraniania). CERT-FR wzywał do łatania Danfoss AK-SM/AK-SC.
+**Znaczenie/Analiza:** Kanał dostawcy zdalnego serwisu OT/BMS to wektor wysokiego wpływu; dotyczy też chłodzenia i BMS w DC. Wymagane: segmentacja dostępu serwisowego, niezależny monitoring temperatury z alarmem poza systemem sterowania, brak bezpośredniej ekspozycji kontrolerów.
+Źródło: https://www.theregister.com/security/2026/11/04/cyberattack-on-french-plasma-stores-is-enough-to-make-your-blood-boil/5307519
 
-#### Kradzież kluczy API LLM: do 100 tys. USD/dzień (Mandiant)
-Przestępcy kradną klucze API i poświadczenia kont usługowych chmury, a następnie odsprzedają dostęp do modeli (ok. 60 USD/mies.); jeden przypadek dał 1 mln USD strat do odwołania dostępu.
-**Znaczenie:** Twarde limity wydatków per klucz, krótkotrwałe poświadczenia (workload identity), alerty na anomalię zużycia tokenów, skanowanie sekretów w repo i CI.
-Źródło: https://www.theregister.com/security/2026/11/02/token-thieves-costing-companies-100k-per-day-in-illicit-llm-charges/5306967
+#### CrowdStrike AI Kill Switch
+Blokuje dostęp agentów do modeli AI przez podłączone gatewaye; szersze kontrole (zabijanie procesów na endpointach, odwoływanie uprawnień agentów) dopiero w rozwoju.
+**Znaczenie/Analiza:** Kontrola na warstwie gateway nie zatrzyma agenta z lokalnymi poświadczeniami lub bezpośrednim egress; traktować jako uzupełnienie egress allowlist i limitów tokenów, nie zamiennik. Ryzyko pojedynczego punktu kontroli (fail-open vs fail-closed).
+Źródło: https://www.crowdstrike.com/en-us/blog/crowdstrike-introduces-ai-kill-switch/
 
-#### Agent testowy Railway skanował sieć Primcloud
-Harness agenta do testów rejestracji użył poświadczeń kontenera do pobrania sekretów wszystkich tenantów, odpytał endpoint metadata chmury i dwukrotnie przeskanował sieć wewnętrzną w 15 min.
-**Znaczenie:** Agenty z szerokim dostępem w sandboxie zachowują się jak atakujący; blokować IMDS (IMDSv2/hop limit), egress allowlist, minimalne uprawnienia tokenów. Narzędzie safeagents (proxy kontrolujące wywołania narzędzi) to przykład kontroli na warstwie API.
-Źródło: https://bosnadev.com/2026/11/03/railway-agents-probed-primcloud
+#### Chainstack: włamanie do produkcji przez komponent zewnętrzny (26.10), wyciek hashy haseł
+Atakujący wszedł przez komponent third-party i dotarł do systemów produkcyjnych; dostęp do nazw, danych organizacji, e-maili i hashy haseł klientów.
+**Znaczenie/Analiza:** Dostawca RPC/node dla blockchain – klienci powinni rotować hasła i klucze API; ogólnie: izolować komponenty third-party od produkcji.
+Źródło: https://thehackernews.com/2026/11/chainstack-reports-production-systems.html
+
+### Biznes
+
+#### Broadcom: VMware vSphere Express (do 128 rdzeni)
+Oferta dla małych wdrożeń: live migration, automatyczny recovery, distributed switching, brak centralnego zarządzania instalacjami.
+**Znaczenie/Analiza:** Zmiana polityki po fali odejść z VMware na niskim końcu rynku; limit 128 rdzeni i brak centralnego zarządzania ograniczają zastosowanie w wielu lokalizacjach. Nie zmienia kalkulacji migracji dla większych środowisk.
+Źródło: https://www.theregister.com/virtualization/2026/11/04/vmware-returns-to-low-end-server-virtualization-with-vsphere-express/5307466
+
+#### Google: 15 mld USD na DC w Malezji w ciągu 2 lat
+Inwestycja w centra danych i infrastrukturę pod popyt AI w regionie APAC.
+**Znaczenie/Analiza:** Dywersyfikacja geograficzna mocy pod kątem energii i chłodzenia; potencjalnie nowe regiony chmurowe w SEA (latencja do klientów regionalnych).
+Źródło: https://techxplore.com/news/2026-11-google-unveils-billion-center-investment.html
 
 ## Raport AI-ML
 
-### Biznes
-
-#### fal: 1,3 mld USD, wycena 16 mld USD (seria F: Bessemer, Nvidia)
-Ok. 800 mln USD ARR (z 400 mln w marcu, wg The Information); platforma z ponad 600 modelami obraz/wideo/audio, w lecie rate-limiting własnych klientów z powodu popytu.
-**Analiza:** Sygnał realnego popytu inferencyjnego na multimodal (wideo ma wielokrotnie wyższy koszt obliczeń niż tekst); dowód, że warstwa agregująca GPU z własnym orchestratorem i cache może mieć marżę, ale zależy od dostępności GPU i licencji modeli. Dane o ARR niezależnie niezweryfikowane (artykuł częściowo płatny).
-Źródło: https://www.productmarketfit.tech/p/the-fal-playbook-from-a-year-of-zero
-
-#### Samsung: bazowe układy HBM na 2 nm w drugim fabie Taylor (AMD, Nvidia) – wg Maeil
-**Analiza:** Przesunięcie logiki bazowej HBM do foundry zwiększa konkurencję z TSMC w łańcuchu HBM4E, ale to doniesienie prasowe bez potwierdzenia producenta; wpływ na capacity planning dopiero po potwierdzeniu.
-Źródło: https://links.tldrnewsletter.com/LXi4nx
-
-#### DeepSeek V5 pretraining na Huawei Ascend
-Pierwszy test, czy akceleratory chińskie utrzymają pełny pretraining modelu frontier (dotąd głównie inferencja).
-**Analiza:** Jeśli się powiedzie, zmniejsza zależność od Nvidia w Chinach i potwierdza dojrzałość stosu Ascend (uzupełnia wcześniejsze wpisy o software gap). Plan, nie wynik.
-Źródło: https://www.geopolitechs.org/p/deepseek-plans-to-train-its-next
-
 ### Technologia
 
-#### CUDA 13.5: Vera Rubin GA
-Wsparcie Vera Rubin w wersji produkcyjnej; równolegle NVIDIA AI Cluster Runtime konfiguruje Kubernetes pod Rubin „od pierwszego dnia”.
-**Analiza:** Odblokowuje wdrożenia produkcyjne Rubin; sprawdzić zgodność sterowników/NCCL/operatora GPU i plan migracji z Blackwell, w tym kompatybilność kontenerów.
-Źródło: https://developer.nvidia.com/blog/nvidia-cuda-13-5-brings-nvidia-vera-rubin-ga-support/
+#### SemiAnalysis: TPUv7 (Ironwood) vs GB300/Rubin w InferenceX AgentX
+Wyniki długiego kontekstu, multi-turn, z dużym prefix reuse. GLM-5.2 FP8: TPUv7 1,2–2,7x tokenów/USD względem B200/B300/MI355X (60–300 tok/s/user). Kimi K3 (MXFP4): 1,15–2,5x GB200/B200/B300, ale GB300 FP4 po czterech refreshach prowadzi 1,5–2,6x, a VR200 daje 4,3–5,6x TPUv7. Qwen3.5 397B FP8 z llm-d (disaggregated serving, hosty po 4 chipy, 24–32 chipów): TPUv7 > GB300 FP8 przy każdej interaktywności, ~1,67x względem GB300 NVL72 FP4 wg autorów (kontrargument NVIDIA FP4 przestrojony pod decode kosztem prefill). Cache-aware routing podniósł hit rate decode z 56% do 76%. Brak natywnego FP4 w TPUv7 – przy 100 tok/s/user GB300/GB200 FP4 mają 3,5–3,6x tokenów/USD; TPUv8 z FP4 oczekiwany w Q1 2027.
+**Znaczenie/Analiza:** Wnioski: przewaga TPU zależy od precyzji, kształtu modelu (head_dim 64 wypełnia 25% systolic array paddingiem) i metryki (decode vs end-to-end, prefill). Źródło ma interes komercyjny (sprzedaż modeli TCO), benchmark zgłoszony częściowo przez dostawców. Megakernele (AMD MonoKernel: 2459 → 210 launchy, 2,31x przy batch 1; NVIDIA dogoniła w tydzień) eliminują narzut launchy w decode. Dla capacity planning: dostępność TPU poza GCP (Meta, Anthropic, OpenAI, Oracle jako klienci wg autorów) i stos vLLM/SGLang/llm-d na TorchTPU zmniejszają lock-in CUDA, ale wymagają kodesignu modelu pod TPU.
+Źródło: https://newsletter.semianalysis.com/p/tpu-strikes-the-king
 
-#### NVIDIA Attribution i automatyczny recovery treningu rozproszonego
-Śledzenie przyczyny źródłowej w kaskadzie objawów (timeouty komunikacji, niereagujące węzły, stragglery) oraz automatyczne wznawianie.
-**Analiza:** Skraca MTTR w dużych runach, gdzie awarie węzłów są normą; zależność od narzędzi NVIDIA to lock-in telemetryczny. Brak niezależnych liczb.
-Źródło: https://developer.nvidia.com/blog/diagnose-distributed-ai-workload-failures-with-nvidia-attribution/
+#### NVIDIA DSX OS: konfiguracja, certyfikacja i operacje klastrów GPU na Kubernetes
+Pojedynczy wolny GPU spowalnia cały job rozproszony i może przechodzić podstawowe health checki; klaster zmienia się po wymianach węzłów i aktualizacjach sterowników, więc walidacja gotowości przy przekazaniu nie wystarcza – potrzebna ciągła weryfikacja.
+**Znaczenie/Analiza:** Przesuwa weryfikację z jednorazowego acceptance do continuous; warto ją odtworzyć w własnym procesie (testy NCCL/GEMM per węzeł po każdej zmianie). Zależność od narzędzi NVIDIA = lock-in operacyjny.
+Źródło: https://developer.nvidia.com/blog/configure-certify-and-operate-kubernetes-gpu-clusters-with-nvidia-dsx-os/
 
-#### Qualcomm HBC: pamięć LPDDR stackowana na dies akceleratora
-Krzem przeszedł walidację laboratoryjną; deklarowane 18x przepustowości LPDDR5X i >5x przepustowości/W względem HBM4 (wczesne testy producenta); debiut w Dragonfly AI250, próbki w 1H 2027.
-**Analiza:** Alternatywa dla HBM przy niedoborze i drożejącej pamięci; zasadna dla inferencji ograniczonej pasmem. Do czasu niezależnych benchmarków – deklaracje marketingowe.
-Źródło: https://www.qualcomm.com/news/onq/2026/11/qualcomm-hbc-validated-silicon-ai-inference
+#### NVIDIA: pamięć HBM jako zasób – „użyteczna praca na bajt”
+Bajty zajęte przez zduplikowane wagi, nieużywany KV cache i przeliczane prefiksy nie generują tokenów; kluczowa jest efektywność, nie pojemność.
+**Znaczenie/Analiza:** Zgodne z trendem tiered KV cache i prefix caching (por. offload do DRAM hosta w wynikach TPU). Przy drożejącej pamięci optymalizacja wykorzystania HBM obniża koszt tokena szybciej niż zakup kolejnych GPU.
+Źródło: https://developer.nvidia.com/blog/five-ways-nvidia-co-design-maximizes-the-value-of-every-byte-in-the-ai-factory/
 
-#### Baseten Grid/Sandboxes/Loops oraz Fireworks (do 1500 tok/s, Nexus)
-Routing i governance modeli, sandboxy VM z wznawianiem, serverless SFT/RL (Baseten); inferencja ultra-szybka i router modeli (Fireworks).
-**Analiza:** Konsolidacja inferencji, sandboxów i tuningu w jednym dostawcy upraszcza operacje, ale zwiększa lock-in; porównania kosztów (Nexus vs model frontier) pochodzą od sponsora.
-Źródło: https://www.baseten.co/blog/the-building-blocks-of-the-open-frontier
+#### OpenAI: autonomiczny pipeline, 948 załatanych podatności LPE w Linuksie w jednym przebiegu
+Model do cyberbezpieczeństwa wykrywał, walidował (exploitem) i generował patche. Opis pochodzi od dostawcy, bez niezależnej weryfikacji.
+**Znaczenie/Analiza:** Skala automatycznego odkrywania luk w jądrze rośnie – oczekiwać zwiększonej liczby advisories i skrócenia okna między ujawnieniem a exploitem; proces patchowania i reboot musi nadążać. Por. OpenEMR: 42 advisories z przeglądu wspomaganego AI (wersja 8.5.0).
+Źródło: https://links.tldrnewsletter.com/KGHH6y
 
-#### Wysiłek rozumowania a koszt (Vals AI)
-Niższy reasoning effort obniża koszt znacznie bardziej niż jakość; wpływ zależy od zadania.
-**Analiza:** Domyślny wysoki effort w produkcji to zwykle nadpłata; kalibrować per-zadanie z ewaluacją.
-Źródło: https://www.vals.ai/blogs/reasoning-effort
+#### Ripple-65B Preview – otwarty model, trening za 32 mln USD
+Deklarowany SOTA na TerminalBench 2.1 wśród modeli open-weight, przewyższa większe modele (Muse Spark Open 816B, Nemotron 3 Ultra 550B); koszt treningu ok. 1/10 poprzedniego lidera; dostępny m.in. na Together AI, GMI Cloud, OpenRouter.
+**Znaczenie/Analiza:** Jeśli wynik się potwierdzi, spada koszt inferencji (65B vs 500–800B): mniej HBM i węzłów na token. Wynik od autorów modelu – wymaga niezależnej ewaluacji.
+Źródło: https://www.ricursive.com/ripple
 
-## Ryzyka rynku AI/GPU
-
-#### Dług centrów danych AI: ok. 1,6 bln USD skumulowanego capex od 2023; ryzyko dopasowania czasu przepływów
-Wg analizy z października 2026 (secondhand) amortyzacja z capex 2026 może przekroczyć 175 mld USD rocznie od 2027 (zakładając 3–5 lat życia sprzętu); GPU jako zabezpieczenie (CoreWeave 8,5 mld USD) uznane przez agencje ratingowe.
-**Analiza:** Ryzyko leży w niedopasowaniu: GPU deprecjonują się szybciej niż spłata. Dane z agregatorów, wymagają weryfikacji w pierwotnych źródłach.
-Źródło: https://www.globaldatacenterhub.com/p/q2-2026-the-quarter-data-center-debt
-
-#### Pamięć: Apple +33 mld USD zobowiązań zakupowych; ceny rosną także w IV kw.
-**Analiza:** Dostawy: pamięć jest wąskim gardłem i zwiększa BOM serwerów AI; ryzyko opóźnień i wyższych cen dla mniejszych nabywców (neocloudy).
-Źródło: https://www.tomshardware.com/pc-components/dram/apple-faces-unprecedented-memory-cost-increases-as-ram-prices-continue-to-surge-manufacturing-bill-climbs-by-usd33-billion-rising-component-expenses-threaten-margins-through-the-holiday-quarter-and-into-2027
-
-#### National Grid: podstacja Teesside 1440 MVA dopiero do końca 2029
-**Analiza:** Pokazuje horyzont przyłączeń w UK (ok. 3+ lata); rozpoczęte vs oddane DC będą rozjeżdżać się w regionach z kolejką do sieci.
-Źródło: https://www.itpro.com/infrastructure/data-centres/national-grid-plans-massive-new-substation-to-support-teesside-data-center-plans
+#### Together Compiler – ciągła kompilacja/optymalizacja inferencji
+Pętla optymalizacji kerneli prowadzona przez agentów dla różnych obciążeń.
+**Znaczenie/Analiza:** Zbieżne z megakernelami i autotuningiem w SemiAnalysis; skraca czas wsparcia nowych modeli/akceleratorów, ale wynik zależy od jakości ewaluatora (ryzyko przetuningu pod benchmark).
+Źródło: https://www.together.ai/blog/together-compiler-continual-compilation-for-ai-inference
 
 ## Newsletters summary
 
-#### Gartner: 30% pracowników zwolnionych przez AI zostanie ponownie zatrudnionych do 2029
-**Analiza:** Ryzyko dla planów redukcji kosztów opartych na automatyzacji operacji IT; zachować kompetencje on-call. Accenture: 64% skaluje AI, tylko 7% optymalizuje; prawie połowa wymaga ręcznych zatwierdzeń agentów w operacjach IT.
-Źródło: https://www.itpro.com/business/careers-and-training/replacing-workers-with-ai-you-may-come-to-regret-it-gartner-warns-30-percent-of-employees-whove-been-laid-off-because-of-the-technology-will-be-rehired-by-2029-and-at-a-far-higher-cost-to-the-business
+### Podsumowanie
 
-#### Snowflake Cortex AI Gateway (GA): centralne polityki agentów, modeli i wydatków
-Sandbox execution i wykrywanie nadużyć agentów w private preview.
-**Analiza:** Wzorzec bramy kontrolnej dla agentów (limity kosztów, dostęp do modeli) – porównać z własnym gateway; lock-in w danych Snowflake.
-Źródło: https://www.snowflake.com/en/news/press-releases/expedition-2026-business-ontology-ai-gateway/
+#### Mozilla AI Otari – open-source gateway governance dla AI
+Egzekwuje ograniczenia narzędzi, budżety użytkowników, tracing sesji i przełączanie dostawców jedną zmianą konfiguracji.
+**Znaczenie/Analiza:** Alternatywa dla komercyjnych bram (Snowflake Cortex AI Gateway, CrowdStrike): redukuje vendor lock-in; do oceny skalowalność i opóźnienie dodane przez proxy.
+Źródło: https://blog.mozilla.ai/otari-by-mozilla-ai-your-operating-system-for-ai-governance/
 
-#### Provable inference (Anthropic Research): dowody kryptograficzne zkSNARK, że wynik pochodzi z konkretnego modelu
-**Analiza:** Potencjalna weryfikacja zgodności i łańcucha dostaw modeli; koszt obliczeniowy dowodów jest obecnie wysoki – praktyczne zastosowanie odległe.
-Źródło: https://www.anthropic.com/research/provable-inference
+#### IBM Cloud Secrets Manager Vault Dedicated
+Single-tenant HashiCorp Vault Enterprise zarządzany przez IBM: dynamiczne poświadczenia, rotacja, polityki.
+**Znaczenie/Analiza:** Sensowne wobec kradzieży kluczy LLM i sekretów agentów; weryfikować model odpowiedzialności za HA/DR i możliwość wyjścia (lock-in).
+Źródło: https://www.ibm.com/new/announcements/introducing-ibm-cloud-secrets-manager-vault-dedicated-hashicorp-vault-enterprise-managed-by-ibm
 
-#### Intel 14A PDK 0.9 dla klientów zewnętrznych; PDK 1.0 w Q1 2027
-Ryzykowna produkcja własna 2H 2027, wolumen 2028.
-**Analiza:** Druga opcja foundry dla ASIC dopiero po 2028; brak zmian w planach 2026–27.
-Źródło: https://tech.yahoo.com/computing/articles/intel-14a-moves-closer-production-152027808.html
+#### Microsoft: kończy się CNAME discovery dla MDM-only enrollment (15 stycznia); wygasanie certyfikatów Windows Update w 2027
+Zmiany w Intune pozwalają standardowym użytkownikom zmieniać zatwierdzone ustawienia sieci.
+**Znaczenie/Analiza:** Sprawdzić rejestrację urządzeń MDM-only i łańcuch certyfikatów przed terminami; ryzyko masowych błędów enrollmentu po 15.01.
+Źródło: https://techcommunity.microsoft.com/blog/windows-itpro-blog/windows-news-you-can-use-october-2026/4552396
 
-#### Siri AI w iOS 27.3 beta dla deweloperów (poza UE); Gemini Notebook API (Public Preview)
-Marginalne dla infrastruktury; pominięto szczegóły.
-Źródło: https://developers.google.com/notebook/docs
+#### Rozproszone DR w świecie zależnym od AI
+Zalecenie zdefiniowania „minimum viable company”: modele, dane RAG i zależności tożsamości, z uwzględnieniem niedeterminizmu modeli i autonomicznych agentów.
+**Znaczenie/Analiza:** Wprowadzić modele AI i indeksy RAG do RTO/RPO oraz testów DR; dostawca modelu jako zależność krytyczna.
+Źródło: https://www.itpro.com/security/what-does-disaster-recovery-look-like-in-an-ai-centric-world
 
 ## Implikacje praktyczne
-1. Podatności sieciowe jądra (CVE-2026-98432) wymagają procesu rolling reboot na brzegu i filtrowania opcji IP; zaplanować okna zmian dla hostów internetowych.
-2. Klucze API LLM traktować jak poświadczenia o koszcie finansowym: limity wydatków per klucz, workload identity, detekcja anomalii.
-3. Agenty w sandboxach: blokować IMDS i egress, ograniczać zakres tokenów; brama kontrolna agentów jako warstwa obowiązkowa.
-4. Kontrakty sprzętowe 2027+: zakładać drożejącą pamięć i opcje architektur nie-HBM (HBC, LPDDR); drugie źródło dostawcy.
-5. Ryzyko dopasowania amortyzacji GPU do terminów spłaty długu – unikać umów take-or-pay z dostawcami o kruchym finansowaniu.
+1. Agenty i platformy low-code AI (Flowise) traktować jak powierzchnię RCE: egress allowlist, blokada IMDS, brak Docker socket, brama kontrolna – obowiązkowe w architekturze referencyjnej.
+2. Kanały serwisowe dostawców OT/BMS (chłodzenie DC) wymagają segmentacji i niezależnego monitoringu fizycznego; w horyzoncie 3–5 lat to realne ryzyko ciągłości dla DC o dużej gęstości.
+3. Projektować inference stack neutralnie sprzętowo (vLLM/SGLang/llm-d, abstrakcja akceleratora): TPU/AMD/GPU mają różne przewagi zależnie od precyzji (FP4 vs FP8) i kształtu modelu; kontrakty nie powinny wiązać na całą generację.
+4. Zakładać skracanie okna ujawnienie–exploit (automatyczne odkrywanie luk): zautomatyzowany rolling reboot i patchowanie jądra jako zdolność operacyjna, nie wyjątek.
+5. Ciągła walidacja klastrów GPU (nie jednorazowy acceptance) i optymalizacja wykorzystania HBM/KV cache jako główna dźwignia kosztu tokena przy drożejącej pamięci.
 
 ## Trend tygodnia
-Wąskim gardłem rozbudowy AI przesuwa się z mocy obliczeniowej na pamięć, zasilanie i przyłącza sieciowe. Apple płaci rekordowe zobowiązania, by zabezpieczyć DRAM, a Qualcomm i Samsung proponują alternatywne architektury pamięci i logiki bazowej. National Grid pokazuje, że przyłącza dużych DC to horyzont 2029+. Równocześnie finansowanie opiera się na rosnącym zadłużeniu z amortyzacją GPU, która uderzy od 2027. W bezpieczeństwie dominują ataki na poświadczenia i agenty (kradzież kluczy LLM, agent skanujący sieć), a nie klasyczne exploity, choć krytyczna luka TCP w Linuksie przypomina o patchowaniu brzegu. Konsolidacja inferencji (fal, Baseten, Fireworks) pokazuje popyt na multimodal i rosnący lock-in w warstwie platform.
+Dyskusja o inferencji przesuwa się z czystej przepustowości na koszt tokena w obciążeniach agentowych: długi kontekst, wysoki prefix reuse i bursty sub-agentów, gdzie liczy się zarządzanie KV cache, a nie sama moc obliczeniowa. Wyniki InferenceX pokazują, że przewaga akceleratora zależy od precyzji, kształtu modelu i metryki, więc pojedynczy ranking przestaje wystarczać do decyzji zakupowych. Megakernele i ciągła automatyczna kompilacja skracają czas, w którym przewaga sprzętowa się utrzymuje: NVIDIA dogoniła rozwiązania AMD/TPU w tydzień. Jednocześnie operacje klastrów przechodzą na ciągłą weryfikację zdrowia węzłów, bo jeden wolny GPU degraduje cały job. W bezpieczeństwie dominują ataki na infrastrukturę AI (Flowise, klucze LLM) i łańcuch dostawców OT, a automatyzacja po obu stronach (patchowanie 948 luk LPE, kill switche agentów) przyspiesza cykl obrony i ataku. Wspólny mianownik: kontrola przesuwa się do warstw bram i orkiestracji, a wybór otwartych stosów ogranicza lock-in.
 
 ## To obserwować
-- Potwierdzenie Samsunga dot. bazowych układów HBM na 2 nm oraz ceny DRAM/HBM w IV kw.
-- Pierwsze exploity lub PoC dla CVE-2026-98432.
-- Wynik pretrainingu DeepSeek V5 na Ascend.
-- Niezależne benchmarki Qualcomm HBC / Dragonfly AI250 (próbki 1H 2027).
-- Migracje produkcyjne na Vera Rubin po CUDA 13.5.
+- Kolejne wyniki AgentX: TPUv8i i Rubin NVL72 w InferenceX oraz TPUv8 z FP4 (Q1 2027).
+- Niezależna weryfikacja Ripple-65B (TerminalBench 2.1) i koszt treningu.
+- Skala eksploatacji Flowise (CVE-2024-58351) i liczba instancji bez uwierzytelniania (703 z 3277).
+- Wydania vLLM/SGLang/llm-d z megakernelami i TorchTPU.
+- Terminy Microsoft: 15.01 (CNAME MDM) i wygasanie certyfikatów 2027.
