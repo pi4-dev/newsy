@@ -17,7 +17,7 @@ Luka pozwala obejść kontrolę SAML, a potencjalnie także MFA wymuszane przez 
 Źródło: https://www.helpnetsecurity.com/?p=390676
 
 #### Outlook.com odrzuca legalną pocztę po niezapowiedzianym zaostrzeniu SPF/DMARC (incydent EX1545193)
-Od końca poprzedniego tygodnia konsumenckie usługi Microsoft odrzucają przerywanie wiadomości, gdy SPF nie przechodzi albo brakuje rekordu DMARC. Dotyczy to także nadawców poniżej progu 5000 wiadomości/dzień z reguł z 2025 r. Microsoft potwierdził, że błąd wywołała aktualizacja reguł antyspamowych. Osobno wycofał zmianę we front-endzie Exchange Online, która w EMEA zrywała sesje OWA i portali Purview/Defender.
+Od końca poprzedniego tygodnia konsumenckie usługi Microsoft z przerwami odrzucają wiadomości, gdy SPF nie przechodzi albo brakuje rekordu DMARC. Dotyczy to także nadawców poniżej progu 5000 wiadomości/dzień z reguł z 2025 r. Microsoft potwierdził, że błąd wywołała aktualizacja reguł antyspamowych. Osobno wycofał zmianę we front-endzie Exchange Online, która w EMEA zrywała sesje OWA i portali Purview/Defender.
 **Znaczenie:** Domeny transakcyjne i systemowe (alerty, faktury, reset hasła) wymagają SPF pass, DKIM pass i DMARC co najmniej p=none z alignmentem. Wysyłki z narzędzi monitoringu i urządzeń, wysyłane z IP spoza SPF, są pierwsze na liście ryzyka. Warto dodać monitoring NDR do alertingu.
 Źródło: https://www.theregister.com/applications/2026/11/09/outlookcom-bounces-legit-emails-as-microsofts-authentication-crackdown-goes-sideways/5308428
 
