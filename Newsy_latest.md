@@ -1,168 +1,201 @@
-# Raport Zbiorczy IT – 2026-11-13
+# Raport Zbiorczy IT – 2026-11-14
 
-**Okno przyrostowe:** od raportu 2026-11-12. Zdarzenia z 10–11.11 ujęte tylko wtedy, gdy nie było ich w rejestrze. Źródła: newslettery z etykiety NEWSY (TLDR, TLDR AI/IT/InfoSec, Own news/HPCwire), RSS NVIDIA Developer Blog, SEC EDGAR i WWW. Problemy ze źródłami: SemiAnalysis RSS dalej zwraca wpisy z 2025 r.; RSS HPCwire/AIwire blokowane przez Cloudflare, więc artykuły HPCwire pobrano bezpośrednio; gartner.com nie ma kanału RSS i nic nowego tam nie znaleziono.
+**Okno przyrostowe:** od raportu z 2026-11-13. Zdarzenia z 10–12.11 są ujęte tylko wtedy, gdy nie było ich w rejestrze. Źródła: newslettery z etykietą NEWSY (TLDR, TLDR AI/IT/InfoSec/Hardware, Own news), RSS NVIDIA Developer Blog i HPCwire, SEC EDGAR, WWW. Problemy ze źródłami: RSS SemiAnalysis nadal zwraca wpisy z 2025 r.; RSS HPCwire/AIwire blokuje Cloudflare (403), a część artykułów HPCwire nie daje się pobrać bezpośrednio; gartner.com nie ma kanału RSS i nie znalazłem tam nic nowego.
 
 ## Raport technologiczny
 
-### Technologia
-
-#### Xen Orchestra VSA-2026-062: obejście uwierzytelnienia aktywnie wykorzystywane, przejęcie hostów XCP-ng jako root
-Advisory Vates z 10.11, bez CVE i CVSS. Cookie `authenticationToken=j:%7B%7D` (pusty obiekt JSON) sprawia, że XO zwraca istniejący token i loguje atakującego jako jego właściciela. Potem atakujący listuje tokeny przez `/rest/v0/users/me/authentication_tokens` i wykonuje kod w zarządzanych pulach. Poprawki: XO 6.9.1 (stable) i 6.10.0 (latest), xo-server 5.211.2 / 5.213.1. IoC: VM o nazwie `pivot2`, VM z `hvm_serial: file`, pliki `/etc/cron.d/zz-ustar*`, `/.ustar5`, `/.ustar6`, wpis w `/etc/ld.so.preload`, adres 91.211.251.112:8001. Exploit nie zostawia śladów w logach aplikacji. Lukę znaleźli badacze TDC NET Security.
-**Znaczenie:** XCP-ng to główny cel migracji z VMware po zmianach licencyjnych Broadcom. Ten incydent pokazuje, że płaszczyzna zarządzania alternatywnego hypervisora jest tak samo krytyczna jak vCenter. Detekcja wymaga logów HTTP z reverse proxy (WAF/proxy przed XO), bo aplikacja niczego nie zapisze. Do zrobienia: XO tylko w sieci zarządzania, przegląd hostów pod kątem `ld.so.preload` i rotacja sekretów pul.
-Źródło: https://bleepingcomputer.com/news/security/critical-xen-orchestra-auth-bypass-flaw-exploited-to-hijack-vm-servers
-
-#### Microsoft Patch Tuesday (10.11): rekordowe ok. 1 094 CVE, jeden zero-day w Outlooku (CVE-2026-124194)
-Exploitowany jest spoofing w Outlooku (CVSS 6,5): klient nie ostrzega przed niebezpieczną akcją, co może prowadzić do ujawnienia danych uwierzytelniających i podszycia się pod użytkownika. Microsoft oznaczył 42 inne błędy jako „exploitation more likely”. Źródła podają 1 093 albo 1 094 CVE.
-**Znaczenie:** Przy tym wolumenie kolejność łatania musi wynikać z ekspozycji (tożsamość, Outlook, serwery brzegowe), a nie z CVSS. Niska ocena luki Outlook jest myląca, bo wyciek poświadczeń prowadzi do przejęcia sesji M365 (patrz następny wpis). Rosnąca liczba CVE to prawdopodobnie efekt automatycznego wykrywania podatności przez AI, więc trzeba się liczyć z dalszym obciążeniem procesów testów i wdrażania poprawek.
-Źródło: https://blog.qualys.com/vulnerabilities-threat-research/2026/11/10/microsoft-patch-tuesday-november-2026-security-update-review
-
-#### M365: dostęp do poczty trwa do ok. 90 min po odwołaniu sesji w Entra
-Eye Security opisuje mechanizm: revoke ustawia `StsRefreshTokenValidFrom`, co blokuje tylko odświeżanie tokenu. Wydany access token działa do wygaśnięcia, czyli do ok. 90 min. Pełny CAE bywa wyłączany, bo koliduje z restrykcjami IP. Wiele organizacji ma więc tylko critical event evaluation, który odcina aplikacje Outlook, ale nie Graph API. Jedyne natychmiastowe odcięcie to wyłączenie konta.
-**Znaczenie:** Runbooki IR oparte na „Revoke sessions” dają fałszywe poczucie izolacji. Okno 90 min wystarcza do eksfiltracji skrzynki przez Graph. Do zrobienia: w playbookach disable account + revoke, przegląd polityk CAE (strict location enforcement) i audyt aplikacji z uprawnieniami Mail.Read.
-Źródło: https://labs.eye.security/how-attackers-keep-reading-mail-after-m365-session-revocation/
-
-#### Microsoft „Lazarus": backdoor w agencie po edycji <10 neuronów modelu open-weight
-Badacze Microsoftu zmodyfikowali 7 rzadko aktywnych neuronów w Nemotron-Terminal-8B. Gdy w prompcie lub w wyniku narzędzia pojawia się trigger, agent wykonuje komendy atakującego z własnymi uprawnieniami. Skuteczność wyniosła 98,8%. Zalecenia: porównywanie checkpointów z bazowymi wagami, prywatne rejestry modeli, sandbox, ograniczony egress i akceptacja akcji o wysokim wpływie.
-**Znaczenie:** Ewaluacje behawioralne takiego backdooru nie wykryją, a zmiana kilku wag nie odbiega statystycznie od szumu fine-tuningu. Integralność wag (hash i podpis artefaktu, porównanie z upstreamem) staje się częścią supply chain, na równi z SBOM i AIBOM. Fine-tuningi z publicznych hubów są w praktyce niezweryfikowanym kodem wykonywalnym.
-Źródło: https://thehackernews.com/2026/11/microsoft-researchers-show-ai-agents.html
-
-#### Grok Build: ok. 35 tys. publicznych aplikacji wykrytych przez pasywny DNS, wyciek danych SpaceXSI/Tesla
-Losowy fragment URL był w subdomenie, więc trafił do baz pasywnego DNS. Claroc znalazł przez enumerację ponad 35 tys. aplikacji, w tym plany sprzedażowe, 3 784 badania lekarskie pracowników i listy kontraktorów Navy.
-**Znaczenie:** To klasyczny błąd: „security through obscure URL” z sekretem w etykiecie DNS. Każdy builder aplikacji AI publikujący efemeryczne hosty z losową subdomeną ma ten sam wektor. Hosting aplikacji generowanych przez agentów musi wymagać uwierzytelnienia domyślnie. Monitoring CT logs i pasywnego DNS dla własnych stref powinien być w ASM.
-Źródło: https://arstechnica.com/security/2026/11/grok-build-coding-agent-leaks-oodles-of-confidential-info-some-belonging-to-spacexsi/
-
-#### Yandex Cloud: 2,84% danych klientów utracone trwale po atakach dronów na 3 DC
-Po październikowych uderzeniach odzyskano ok. 97% danych. Reszta przepadła przez zniszczony sprzęt i brak backupów po stronie klientów. Yandex włączy backupy domyślnie i rozproszy infrastrukturę na kolejne niezależne lokalizacje.
-**Znaczenie:** To realny przypadek utraty danych przy jednoczesnej awarii wielu DC. Model współodpowiedzialności oznacza, że brak backupu w innej domenie awarii to strata po stronie klienta. Plany DR powinny zakładać utratę całego regionu, w tym kilku AZ jednocześnie, oraz kopie w innym regionie lub u innego dostawcy z testami odtwarzania.
-Źródło: https://www.datacenterdynamics.com/en/news/yandex-restores-97-of-customer-data-after-drone-attacks/
-
 ### Biznes
 
-#### Cisco: od 2027 wszystkie nowe produkty muszą integrować się z SaaS Cloud Control
-Cisco nie będzie wydawać produktów bez integracji z Cloud Control, choć według firmy nie oznacza to zarządzania wyłącznie z chmury. Regiony UE, UK i Australia startują w lutym 2027, Japonia, Indie i Kanada w maju. ThousandEyes trafia do licencji Essentials/Advantage i włącza się automatycznie z Wi-Fi 6E/7. Live Protect (kompensujące kontrole dla luk, których nie da się od razu załatać) obejmie od grudnia routery 8000, Secure Firewall i campus gateway, a od maja 2027 ASR 9000 i NCS.
-**Znaczenie:** Rośnie zależność płaszczyzny zarządzania sieci od SaaS producenta, z ryzykiem dla rezydencji danych (UE dopiero od 02/2027), środowisk air-gapped i dostępności przy awarii chmury Cisco. Przy przetargach 2027+ trzeba wymagać gwarancji lokalnego zarządzania i eksportu konfiguracji/telemetrii (gNMI/OpenConfig).
-Źródło: https://www.theregister.com/networks/2026/11/10/cisco-to-link-all-future-products-to-its-saas-y-cloud-control-management-tool/5308660
+#### Awaria Microsoft 365 (12–13.11): Exchange Online, Teams, Copilot, Defender for O365 oraz Intune
+Awaria zaczęła się ok. 18:00 UTC 12.11. O 00:35 UTC 13.11 usługi nadal nie były w pełni przywrócone. Według Microsoftu nie było zmiany, która mogłaby ją wywołać. Health checki serwerów zawodziły, prawdopodobnie przez komponent przetwarzający stan zdrowia, a proces rdzeniowy na serwerach był przeciążony i przestawał odpowiadać. Microsoft wdrożył alternatywną metodę health checku, restartował serwery i stopniowo przywracał ruch. Część naprawionych serwerów padała ponownie, gdy wracał na nie ruch. Rozważano też cofnięcie kilku ostatnich zmian konfiguracji.
+**Znaczenie:** To klasyczny failure mode warstwy kontroli. Fałszywie negatywne health checki zdejmują zdrowe serwery z puli, a pozostałe padają pod ruchem ponownie przywracanym (retry storm). Razem z płaszczyzną danych padły narzędzia administracyjne (Intune, M365 Apps Admin Center), więc w trakcie incydentu nie dało się zarządzać endpointami. Plany BCP powinny zakładać, że poczta, łączność i MDM jednego dostawcy znikają jednocześnie. Warto mieć niezależny kanał komunikacji kryzysowej i lokalne procedury break-glass dla endpointów.
+Źródło: [The Register](https://www.theregister.com/saas/2026/11/12/microsoft-struggling-to-fix-massive-cloud-outage-thats-taken-down-email-and-intune/5309531)
+
+### Technologia
+
+#### Apache HTTP Server: RCE bez uwierzytelnienia w mod_http2 (CVE-2026-119618, CVSS 9,8)
+Podatne są wersje 2.4.55–2.4.70 z włączonym HTTP/2 oraz samodzielne buildy mod_h2 2.0.8–2.0.42. Repozytorium mod_h2 jest zarchiwizowane i nie dostanie poprawki. Poprawka jest w 2.4.71 (wydanej 11.11) oraz w paczkach RHEL 9 `mod_http2-2.0.26-7.el9_9.1` i RHEL 10 `mod_http2-2.0.29-5.el10_3.1`. Debian bookworm/trixie nie miał poprawki w chwili publikacji, Amazon Linux jest w toku. Red Hat twierdzi, że istnieje niezawodny publiczny exploit, Wiz – że exploita nie ma. W RHEL ryzyko ogranicza osobny alokator pamięci per stream. Zgłoszenie (26.10) przyszło m.in. z Anthropic OSS Scanner i Google Cloud Vulnerability Research. Wersje 2.4.67–2.4.70, które łatały poprzednią lukę HTTP/2 (CVE-2026-23918), są podatne.
+**Znaczenie:** Ekspozycja jest szeroka: reverse proxy, ingressy i appliance'y z wbudowanym httpd. Jeśli nie da się od razu wdrożyć poprawki, trzeba usunąć `h2`/`h2c` z każdej dyrektywy `Protocols`, także w vhostach. Kosztem jest utrata multipleksowania i wyższe opóźnienia dla klientów. Appliance'y z wbudowanym Apache będą czekać na vendorów tygodniami, więc trzeba je zinwentaryzować.
+Źródło: [The Hacker News](https://thehackernews.com/2026/11/critical-apache-http2-flaw-could-let.html)
+
+#### WFX-Loot: stealer sekretów CI uruchamiany w 1 835 repozytoriach z 4 837 przejętych kont GitHub
+Atak trwał od 10.11 12:45 UTC. Kampania otworzyła 61 764 próbne PR-y („docs: dependency audit notes”, gałąź `wfx-docs`), po czym wstrzyknęła payload jednym z trzech sposobów: kroki workflow, hook `postinstall` albo tymczasowy workflow na gałęzi `chore/`. Po ok. minucie zmiany cofała, a run i logi kasowała. Skrypt ma ok. 1 500 linii. Zbiera sekrety Actions, pliki poświadczeń chmur, K8s i rejestrów, klucze AI oraz pamięć procesów `Runner.Worker`. Mintuje tokeny OIDC i wymienia je na sesje AWS, GCP i Azure. Persystencję zapewnia na trzy sposoby: przepisuje trust policy roli AWS na `"Principal": {"AWS": "*"}`, dodaje federated credentials `wfx-ci-…` w Entra (przeżywają rotację tokenów) i fałszuje statusy wymaganych checków. Eksfiltracja idzie przez HTTP POST na 194.150.166[.]244:8080 i 18.143.168[.]96:8080.
+**Znaczenie:** Rotacja sekretów nie wystarcza. Trzeba też sprawdzić trust policies IAM i federated credentials, bo te tylne drzwi nie zależą od skradzionych sekretów. Sygnałem detekcji są luki w numeracji runów workflow. Obrona: zawężone warunki trust OIDC (`sub` z konkretnym repo i ref, bez wildcardów), wymagane checki dopuszczające tylko konkretną GitHub App jako źródło statusu, alerty CloudTrail na `UpdateAssumeRolePolicy`.
+Źródło: [Aikido](https://www.aikido.dev/blog/compromised-github-accounts-push-ci-secret-stealer-to-tens-of-thousands-of-repositories)
+
+#### Red Hat Quay: trwały klucz podpisujący zapewnia R/W do wszystkich repozytoriów (CVE-2026-123710, CVSS 9,8)
+Każdy, kto zdobędzie token rejestru (także anonimowy), może zarejestrować w service key server klucz podpisujący bez daty wygaśnięcia. Klucz daje odczyt i zapis we wszystkich repozytoriach. Zmiana haseł ani tokenów robotów go nie unieważnia. Poprawionej wersji jeszcze nie ma.
+**Znaczenie:** Prywatny rejestr obrazów jest punktem zaufania całego łańcucha wdrożeń. Zapis do repozytorium oznacza podmianę obrazów bazowych we wszystkich klastrach. Do czasu poprawki: ograniczyć sieciowo dostęp do endpointu service keys, przejrzeć tabelę kluczy pod kątem nieznanych wpisów i wymusić weryfikację podpisów (cosign/Notation) po stronie admission controllera, niezależnie od ACL rejestru.
+Źródło: [TLDR InfoSec / advisory Red Hat](https://links.tldrnewsletter.com/3wU1bM)
+
+#### Microsoft FORGE: 26 502 surowe znaleziska AI w jądrze Linux → 59 zgłoszeń, 33 CVE, 8 działających exploitów root
+Skan trwał od końca maja do połowy czerwca i objął sieć, systemy plików i LSM. Kod skanowały modele Sonnet 4.6 (71% tokenów), GPT-5.4 i GPT-5.5. Lejek: 26 502 znaleziska → 11 769 kandydatów → 621 z PoC w QEMU → 59 zgłoszeń. 24 z 33 CVE mają CVSS ≥ 7. Błędy miały średnio 8,1 roku (najstarszy, w cls_u32, ok. 21 lat). Przykład: UAF w iteratorze rhashtable (CVE-2026-64563), osiągalny przez `__netlink_diag_dump()` dla nieuprzywilejowanego użytkownika, daje LPE także na Androidzie z SELinux enforcing. W mainline jest 38 poprawek, mediana od patcha do wydania to 41 dni (maks. 108). Raporty kosztowały 4 osobomiesiące pracy ekspertów.
+**Znaczenie:** Wąskim gardłem jest naprawa, nie wykrywanie. Kernele LTS i vendorowe (appliance'y, Android, BSP) będą miały rosnącą kolejkę znanych, publicznych LPE. Dla multi-tenant (K8s, CI runnery) wniosek jest taki, że izolacja oparta tylko na namespace'ach staje się niewystarczająca. Trzeba ograniczać dostęp do netlink i nietypowych rodzin gniazd (seccomp) i przejść na izolację VM, np. gVisor lub Kata, dla obcego kodu.
+Źródło: [Microsoft Security Blog](https://www.microsoft.com/en-us/security/blog/2026/11/11/lessons-from-59-linux-kernel-bug-reports/)
+
+#### GSocket jako C2 bez infrastruktury atakującego (Microsoft, +356% detekcji III–VIII)
+Po wejściu przez aplikacje PHP, cPanel lub Apache atakujący instaluje klienta GSocket w `/dev/shm`, nadaje procesowi nazwę wątku jądra i utrwala go przez cron, systemd i profile powłoki. Klient łączy się wychodząco z publiczną siecią relayów GSocket, a parowanie z operatorem odbywa się samym współdzielonym sekretem. Nie ma więc IP ani domeny atakującego do zablokowania. Część aktorów próbowała też eskalacji przez Dirty Frag (CVE-2026-43284).
+**Znaczenie:** Blokowanie IoC nie działa, działa tylko egress deny-by-default dla serwerów webowych (allowlista), `noexec` na `/dev/shm` i `/tmp` oraz wykrywanie procesów udających wątki jądra (PPID≠2). Sama poprawka aplikacji to połowa remediacji.
+Źródło: [Microsoft Security Blog](https://www.microsoft.com/en-us/security/blog/2026/11/11/global-socket-how-threat-actors-weaponizing-gsocket-stealthy-c2/)
+
+#### SCKit: robak przez rozszerzenie RMM+ do ConnectWise ScreenConnect – 288 endpointów w 48 organizacjach
+Rozszerzenie RMM+ w wersjach 1.0.31 i 1.0.32 akceptowało pusty klucz dostępu. Atakujący użyli komend Run w chmurowych panelach, aby instalować fałszywych klientów i SCKit, który podmienia legalnego klienta i kradnie cookies sesji techników. ConnectWise wyłączył 5 rozszerzeń w ponad 400 środowiskach partnerów.
+**Znaczenie:** Rozszerzenia firm trzecich w RMM to łańcuch dostaw o uprawnieniach SYSTEM na całej flocie MSP. Potrzebne są: inwentarz i allowlista rozszerzeń, wiązanie sesji techników z urządzeniem (token binding/FIDO2) oraz alerty na masowe komendy Run.
+Źródło: [Huntress](https://www.huntress.com/blog/sckit-worm-rogue-screenconnect)
 
 ## Raport AI-ML
 
 ### Biznes
 
-#### Nvidia: Jensen Huang rezygnuje (8-K, 12.11), Colette Kress tymczasowym CEO
-Według formularza 8-K Huang z natychmiastowym skutkiem odchodzi z funkcji prezesa, CEO i członka zarządu. Kress (CFO) zostaje tymczasowym CEO i nadal pełni funkcję CFO. Harvey C. Jones został pierwszym w historii przewodniczącym rady. Rada szuka następcy wśród kandydatów wewnętrznych i zewnętrznych, z pomocą zewnętrznej firmy (Bloomberg, 11.11). Spółka deklaruje ciągłość operacji i zobowiązań wobec klientów. Wyniki kwartalne 17.11 pozostają bez zmian. 8-K nie podaje przyczyny, a media łączą rezygnację z dochodzeniem rady w sprawie kontaktów z osobą wskazywaną przez wywiad USA jako agentka ChRL (aktualizacja wpisu z 10.11).
-**Analiza:** Roadmapa (Vera Rubin w pełnej produkcji, zobowiązania podażowe ok. 279 mld USD, głównie pamięć) jest zakontraktowana, więc w horyzoncie 2–3 kwartałów ryzyko dostaw jest niskie. Większe ryzyko dotyczy pozycji negocjacyjnej wobec hyperscalerów (alokacje, ceny, pakiety NVLink/Spectrum-X), relacji z administracją USA w sprawie licencji eksportowych oraz retencji kadry inżynierskiej. Przy tymczasowym CEO-finansiście priorytetem jest zwykle obrona marży, a nie agresywne cenowe przyciąganie klientów. Kupujący zyskują argument do dywersyfikacji (AMD MI450/MI455X, TPU, Trainium), co wzmacnia negocjacje kontraktów na 2027–2028.
-Źródła: https://www.sec.gov/Archives/edgar/data/0001045810/000104581026000082/nvidiaannouncesceotransiti.htm ; https://www.cnbc.com/2026/11/12/nvidia-jensen-huang-ceo-live-updates.html
+#### Cerebras Q3 2026 (8-K, 12.11): RPO 26,1 mld USD, chmura +265%, marża GAAP 20%
+Przychód GAAP wyniósł 210,8 mln USD (+55% r/r). Chmura i usługi dały 141,9 mln (+265%), sprzęt 68,9 mln (rok wcześniej 96,8 mln). Marża brutto GAAP to 20,0% (sprzęt 11,0%, chmura 24,3%), marża „core” 41%. Strata netto w kwartale wyniosła 161,2 mln USD, po 9 miesiącach 625,8 mln. Przepływy operacyjne po 9 miesiącach: −388,9 mln USD, capex: −1 046,1 mln. Spółka ma 700 MW brutto mocy DC pod kontraktem do końca 2027 r., w tym nowe lokalizacje w Norwegii i Finlandii. Prognoza core na IV kw. to 310–330 mln USD przy marży 47–49%; na 2027 r. zapowiedziano potrojenie przychodu. WSE-5 jest w testach systemowych (od tape-outu <5 mies.), CS-5 ma trafić na rynek wczesnym latem 2027 z obietnicą do 10 tys. tok/s na użytkownika. Wśród ryzyk spółka wskazuje koncentrację na kilku klientach, w tym na umowie z OpenAI.
+**Analiza:** Cerebras przechodzi z modelu sprzedaży sprzętu na operatora chmury inferencyjnej. W kosztach widać to po kapitałochłonności (capex ok. 5× przychodu kwartalnego) i niskiej marży chmury (24%), bo amortyzacja klastrów wyprzedza ich wykorzystanie. RPO 26 mld przy rocznym przychodzie <1 mld oznacza, że wynik zależy od terminowego oddania 700 MW i od kondycji jednego, dużego odbiorcy. Dla klientów latencja per user (tok/s) jest realną przewagą nad GPU w agentach i kodowaniu, ale lock-in jest silniejszy niż przy GPU, bo dostępny jest tylko jako API dostawcy, bez przenośnego stosu.
+Źródło: [SEC 8-K](https://www.sec.gov/Archives/edgar/data/0002021728/000162828026073366/cbrsannouncesfinancialresu.htm)
 
-#### Anthropic: Microsoft dodaje do 4,3 mld USD zobowiązań compute (S-1/A, 11.11)
-Zaktualizowane zgłoszenie podnosi zobowiązanie wobec Microsoft do 47,2–49,2 mld USD (wcześniej 44,9 mld) na lata 2026–2033. Umowa jest niewypowiadalna poza niedostarczonymi transzami. DCD wskazuje też, że sierpniowa umowa o wartości ok. 34,9 mld USD może zostać rozwiązana, jeśli Lambda nie zabezpieczy dzierżawy obiektu w określonym terminie.
-**Analiza:** Klauzula uzależniająca kontrakt od tego, czy neocloud zdobędzie powierzchnię DC, przenosi ryzyko wykonawcze (powierzchnia, zasilanie) na dostawcę i jego wierzycieli. Kontrakt wart dziesiątki miliardów może zniknąć bez winy klienta. Dla oceny backlogu neocloudów ważne są więc warunki zawieszające (lease, oddanie MW do eksploatacji), a nie sama wartość umowy.
-Źródło: https://www.datacenterdynamics.com/en/news/anthropic-signs-another-43bn-in-compute-agreements-with-microsoft/
+#### Forensyka checkpointów: chińskie modele (DeepSeek, Moonshot, MiniMax, Ant) inicjalizowane na Blackwell
+Analiza z 12.11 odtwarza układ generatora Philox/cuRAND przy inicjalizacji wag w PyTorch. Mapowanie liczb na pozycje zależy od liczby SM: Hopper ma 132 SM, B200/B300 – 148, GB200/GB300 – 152. Ślad przetrwał trening, najwyraźniej w nieużywanych wierszach słownika. Sześć modeli wydanych od kwietnia ma sygnaturę Blackwell (49–1 385 σ): DeepSeek-V4-Flash i MiniMax-M3 (148 SM) oraz DeepSeek-V4-Pro, Kimi K3, K3.1-Pro i Ling-3.1-flash (152 SM). Metoda zgodziła się z deklaracją sprzętu w 24 znanych przypadkach. Analiza dowodzi jedynie dostępu do sprzętu. Nie ustala, gdzie chipy były, czyje są ani czy złamano przepisy.
+**Analiza:** Pojawia się tania, pasywna metoda audytu pochodzenia compute na podstawie publicznych wag. Należy się spodziewać nacisku regulacyjnego na zdalny dostęp do Blackwell przez chmury poza USA (zob. 12.11: Moonshot pytał europejskich neocloudów o 8 000+ GPU). Dla europejskich neocloudów rośnie ryzyko KYC i sankcji przy klientach z Chin. Ryzyko odwrotne: producenci modeli zaczną randomizować seed lub inicjalizację, więc metoda straci skuteczność w kolejnych wydaniach.
+Źródło: [Unemployment Labs – Checkpoint Forensics](https://unemploymentlabs.com/checkpoint-forensics)
 
 ### Technologia
 
-#### AMD Instinct: MI430X (FP64, 432 GB HBM4), nowy MI450X 288 GB, MI455X na Helios w MLPerf
-MI430X: natywne FP64, 432 GB HBM4, do 23,3 TB/s. AMD opublikował porównanie emulacji FP64 z natywną podwójną precyzją (47 konfiguracji w 11 aplikacjach). MI450X: 288 GB HBM4, poza tym te same obliczenia, przepustowość pamięci i scale-up/scale-out co MI455X. MI455X na Helios według pomiarów AMD: 21 333 tok/s/GPU na DeepSeek-R1 (MLPerf Inference Offline), do 30% więcej niż opublikowany wynik offline Vera Rubin, do 20% większe pasmo HBM. Brak dat dostępności.
-**Analiza:** Rozdzielenie SKU według pojemności HBM przy tej samej logice pozwala dobrać koszt pod rozmiar modelu i KV cache. To ważne przy deficycie HBM4, bo wariant 288 GB oszczędza najdroższy komponent. Wynik offline nie mówi nic o TTFT ani interaktywnym latency, a porównanie z Rubinem pochodzi od producenta. Trzeba czekać na wyniki zgłoszeń MLPerf w kategorii server/interactive i na dojrzałość ROCm w vLLM/SGLang. Osobna linia FP64 (MI430X) potwierdza, że HPC i AI rozjeżdżają się sprzętowo, bo Nvidia ogranicza FP64 w Rubinie.
-Źródło: https://www.hpcwire.com/off-the-wire/amd-expands-instinct-mi400-gpu-portfolio-for-hpc-and-ai-for-science/
+#### cuBLAS (CUDA 13.4.2): emulacja FP64 Ozaki-II na Tensor Core INT – do 5,5× DGEMM na VR NVL72
+DGEMM i ZGEMM są domyślnie liczone przez rozkład operandów na liczby całkowite i GEMM na Tensor Core INT. Ozaki-II (oparty o chińskie twierdzenie o resztach) wymaga liczby GEMM rosnącej liniowo z liczbą modułów, Ozaki-I – kwadratowo z liczbą plastrów. ZGEMM metodą 2M zamiast 4M daje do 5× na GB200. Wyniki: VR NVL72 do 5,5× (175 TFLOPS), GB200 do 3,9× (147 TFLOPS), RTX PRO 6000 BSE 10–23× (37 TFLOPS). Liczbę bitów mantysy dobiera framework ADP i w razie potrzeby wraca do natywnego FP64. Rubin dostaje format TI16 i `tcgen05.mma` (CC 10.7). Sterowanie przez `cublasSetEmulationStrategy`.
+**Analiza:** NVIDIA formalnie przesuwa FP64 z jednostek natywnych do emulacji na krzemie AI. To zmienia capacity planning HPC: wydajność FP64 przestaje być stała dla danej karty i zależy od rozmiaru macierzy, rozpiętości wykładników (ADP może wrócić do natywnego FP64) oraz pamięci workspace, która rośnie z liczbą modułów. Dla ośrodków mieszanych HPC/AI zmniejsza to presję na kupowanie akceleratorów FP64-centric (np. AMD MI430X). Trzeba jednak dodać testy reprodukowalności i zweryfikować wyniki naukowe przy zmianie strategii emulacji.
+Źródło: [NVIDIA Technical Blog](https://developer.nvidia.com/blog/faster-scientific-simulations-with-new-fp64-algorithms-in-nvidia-cublas/)
 
-#### Axelera AI Titania: europejski akcelerator inferencji D-IMC z LPDDR6, chłodzony powietrzem (produkcja Q3 2027)
-Trzecia generacja architektury digital in-memory compute, teraz z FP. SiP zawiera 2 chiplety i 128 GB LPDDR6. Serwer referencyjny AX8 (4U, chłodzenie powietrzem, ok. 5–6 kW): ok. 20 PFLOPS FP8, 1 TB pamięci, 19,6 TB/s, model 1,6T parametrów w FP4. Wspiera TP/EP/PP, speculative decoding, offload KV cache i disaggregację. Producent podaje 7x perf/W i 20x TCO względem serwerów DC (dane producenta). Zobowiązania klientów wynoszą ponad 300 mln USD, a projekt powstał przy wsparciu EuroHPC DARE.
-**Analiza:** LPDDR6 zamiast HBM omija wąskie gardło podaży HBM i pozwala wejść do istniejących DC z szafami 15–30 kW bez DLC. Kosztem jest ok. 10x niższe pasmo pamięci na akcelerator niż w GPU z HBM4, więc dekodowanie dużych modeli będzie ograniczone pasmem. Sensowne zastosowanie to batch, MoE z małą liczbą aktywnych parametrów i edge/sovereign inference. Ryzyka: niedojrzały toolchain (Voyager SDK) i brak niezależnych benchmarków przed 2027.
-Źródło: https://www.hpcwire.com/off-the-wire/axelera-ai-unveils-titania-architecture-ahead-of-sc26/
+#### GLM-5.3 (753B MoE, NVFP4) na dwóch DGX Station GB300 przez ConnectX-8 – vLLM TP=2
+Checkpoint ma ok. 464 GB, czyli więcej niż jedna karta GB300 z 252 GB HBM3e. Konfiguracja: TP=2 przez dwa bezpośrednie linki RDMA 400 Gb/s (MTU 9000), vLLM 0.30.0 i NCCL 2.30.7 (pinowany ze względu na deadlock CUDA graph między węzłami), MTP z 4 tokenami draft, KV cache w FP8, prefix caching, max kontekst 98k. Wyniki na benchmarku kodowania: C1 – 107 tok/s i ITL 8,8 ms; C16 – maksimum przepustowości 608 tok/s przy ITL 23,8 ms; C32 – spadek do 385 tok/s, ITL 78 ms, TTFT 0,9 s. Endpoint domyślnie nie ma uwierzytelnienia i nasłuchuje na 0.0.0.0.
+**Analiza:** To dobry punkt odniesienia dla on-prem modeli frontier w działach R&D bez klastra. Sufit to ok. 16 równoległych sesji agentowych, powyżej KV cache i komunikacja TP między węzłami powodują gwałtowny spadek przepustowości (knee przy C16–C32). Ryzyka: zależność od konkretnej wersji NCCL i obrazu vLLM, brak HA (dwa węzły = dwa SPOF) oraz otwarty endpoint, który wymaga mTLS i gateway'a.
+Źródło: [NVIDIA Technical Blog](https://developer.nvidia.com/blog/when-one-gpu-isnt-enough-serving-glm-5-3-across-two-nvidia-dgx-stations-with-vllm/)
+
+#### AMD Verano (host CPU dla Instinct): 24 kanały LPDDR5X SOCAMM2 i xGMI 112 Gb/s; Zen 6c z najwyższym IPC
+Verano występuje w dwóch wariantach: 72 rdzenie Zen 6 przy 5,3 GHz albo 192 rdzenie gęste przy 4,1 GHz. Własne die I/O obsługują 24 kanały LPDDR5X (SOCAMM2, do 8 533 MT/s), co według AMD obniża pobór mocy o 30–40% wobec RDIMM. AMD poświęca przepustowość pamięci na rzecz linków xGMI 112 Gb/s do GPU. Mike Clark w rozmowie z Chips and Cheese: Zen 6c (32 rdzenie, 128 MB L3) ma teraz najwyższe IPC w rodzinie. Zmiany w Zen 6: 2 zamiast 3 mnożników całkowitych, 4 ładowania wektorowe na cykl, dwa potoki VNNI dodane pod inferencję, L2 64 B/cykl.
+**Analiza:** AMD powtarza architekturę Grace/Vera: CPU w racku AI ma przede wszystkim zasilać GPU (koherentny link, pamięć LPDDR jako tańsze i chłodniejsze rozszerzenie dla KV cache i offloadu). SOCAMM2 jest modułowe, ale nie jest standardowym RDIMM, więc łańcuch dostaw pamięci zależy od tych samych dostawców LPDDR, co w racku NVIDII, przy obecnym niedoborze DRAM. Dla klasycznych serwerów VM wariant 192c z dużym L3 może dać przewagę w gęstości vCPU na wat.
+Źródła: [The Register](https://www.theregister.com/systems/2026/11/10/a-closer-look-at-verano-amds-first-step-toward-a-zen-based-superchip-to-rival-nvidias-vera-rubin/5308523), [Chips and Cheese](https://chipsandcheese.com/p/talking-zen-6-with-mike-clark-at)
+
+#### Penguin SMART CXL-8F2W-D4: 8× DDR4 RDIMM na karcie CXL 2.0 (Marvell Structera X)
+Karta dodaje do serwerów z CXL 2.0 pamięć z odzyskanych modułów DDR4. Penguin prowadzi program pozyskiwania DDR4 z wycofywanych serwerów. Producent nie podał przepustowości, latencji ani pojemności maksymalnej. Każda karta jest walidowana w kompatybilnym hoście przed wysyłką. Marvell na SC26 pokaże też Structera X z DDR4 i DDR5 oraz „Photonic Fabric” do optycznego rozszerzenia pamięci między rackami.
+**Analiza:** W warunkach kryzysu pamięci (przychód DRAM +369% przy ok. +4% bitów, zob. 08.11) DDR4 za CXL to tani tier pojemnościowy dla offloadu KV cache, baz in-memory i wektorowych. Kosztem jest ok. +100–200 ns latencji względem lokalnego DRAM i przepustowość ograniczona linkiem x16. Wymaga to tieringu świadomego NUMA i konfiguracji w kernelu (np. `memory_tiering`) albo w schedulerze. Należy przetestować awaryjność: odzyskane moduły mają nieznaną historię, więc potrzebny jest monitoring ECC i polityka wymiany.
+Źródło: [HPCwire](https://www.hpcwire.com/off-the-wire/penguin-solutions-introduces-cxl-enabled-ddr4-module-for-ai-data-centers/)
+
+#### Self-hosted Claude Managed Agents (private beta, 12.11): pętla agenta, sandboxy i sesje w infrastrukturze klienta
+U klienta działają serwer i baza Managed Agents, harness agenta, sandboxy (shell i pliki), sekrety w jego vaulcie oraz historia sesji. Inferencja idzie do wybranego endpointu: Anthropic API, Bedrock, Google Agent Platform, Microsoft Foundry albo własny gateway. ZDR działa jak w Messages API. Można ustawić allowlistę hostów per środowisko i eksportować rekordy sesji przez OpenTelemetry.
+**Analiza:** Rozdzielenie płaszczyzny wykonania agentów od inferencji pozwala trzymać poświadczenia i efekty uboczne (FS, sieć) w strefie zaufania organizacji. To warunek wstępny dla agentów z dostępem do produkcji w sektorach regulowanych. Organizacja przejmuje jednak operacyjnie skalowanie sandboxów, izolację (zob. FORGE – LPE w jądrze), retencję sesji i aktualizacje harnessu. Lock-in przesuwa się z warstwy modelu na format sesji i API orkiestracji.
+Źródło: [Claude](https://claude.com/resources/articles/self-hosted-claude-managed-agents)
 
 ## euro neocloud
 
-### Nebius
-
-#### Q3 2026 (12.11): przychód 980,8 mln USD, capex 2026 podniesiony do ok. 27 mld, cel ARR 7 mld przesunięty na luty 2027
-Fakty: przychód +571% r/r, skorygowana EBITDA 465,8 mln (47,5%), strata netto 37,5 mln, D&A 354,7 mln, odsetki 112,5 mln. Ok. 325 mln przychodu to jednorazowe przychody z partnerstw asset-light. Capex w Q3 wyniósł 7,30 mld (15,43 mld za 9 mies.). Prognoza przychodu na 2026 przy dolnej granicy 3,0–3,4 mld. RPO ok. 38,7 mld, ponad 4 GW zakontraktowanej mocy (cel 5 GW na koniec roku). Przedpłaty pokryły ponad 100% capexu z umów Q3 (w Q2 było 50–60%). Wytyczne na 2027: przychód 12–13 mld, capex 40–45 mld, z czego 75–85% ma być pokryte przedpłatami i finansowaniem kontraktowym. Break-even przed opodatkowaniem planowany na Q4 2027. Harmonogramy kolokacji zewnętrznej, w tym kolejne fazy w New Jersey, przesunięto na 1H 2027. Kurs spadł ok. 16% w dniu publikacji.
-
-**Ocena analityczna**
-- *Sygnały ostrzegawcze:* drugie z kolei przesunięcie kamienia milowego ARR; wzrost capexu przy obniżonych przychodach; zależność od terminów kolokatorów; rosnący koszt odsetek; przychody jednorazowe zawyżają kwartał.
-- *Ocena ryzyka:* **Średnie**. Model z przedpłatami ogranicza zapotrzebowanie na dług, a gotówka wynosi ok. 7,4 mld. Ryzyko przesuwa się jednak na wykonanie (oddanie MW w terminie) i koncentrację klientów (Microsoft, Meta). Każde opóźnienie DC przesuwa przychód przy już poniesionym capexie i odsetkach.
-- Linki: https://convergedigest.com/nebius-q3-2026-earnings-ai-cloud-capex-2027/ ; https://nebius.com/newsroom
-
 ### Nscale
 
-#### Rozważane przesunięcie IPO na NYSE, wycena może spaść poniżej połowy z 35 mld USD (Telegraph, 11.11)
-Fakty: według Daily Telegraph (relacja Silicon UK) Nscale rozważa odłożenie IPO z powodu zmienności na rynku AI. Część inwestorów ocenia, że wycena może wynieść mniej niż połowę zakładanych 35 mld USD (ostatnia runda: 14,6 mld). W październiku australijski Firmus odwołał IPO, w którym szukał wyceny 30 mld USD. Kontekst z rejestru: Microsoft zrezygnował z części opcji (opisane 11.11).
+#### F-1/A (12.11): dług 5,5 mld USD, strata 1,69 mld po 9 miesiącach, „will require additional capital” na zobowiązania 2027
+**Fakty:** Zaktualizowany prospekt pod notowanie na NYSE (ticker NSCL, prowadzący: Goldman Sachs, JPMorgan, Morgan Stanley) nie podaje przedziału cenowego ani wielkości emisji. Przychód: 307,5 mln USD. CNBC podaje to jako wynik III kw., TNW jako 9 miesięcy (I półrocze 140,6 mln USD), więc wartość kwartalna nie jest pewna. Strata netto: 1,69 mld USD (I półrocze 1,02 mld). Dług na 30.09: ok. 5,5 mld USD (koniec 2025: 78,9 mln; 30.06: 137,4 mln). Kontrakty aktywne: ok. 6,4 mld USD, aktywne i podpisane: 105,8 mld USD. Największy klient to Anthropic: 6-letni kontrakt do ok. 44,6 mld USD na 460 MW w Monarch (Wirginia Zachodnia), z pierwszą mocą od końca 2027. Nscale zainwestowało tam ok. 1 mld USD i potrzebuje co najmniej 30 mld więcej. Anthropic może rozwiązać umowę, jeśli finansowanie lub dostawa się nie powiodą, a niezakupienie sprzętu Nvidia grozi karami. Nvidia objęła 2 mld USD z ponad 3 mld USD konwertowalnych obligacji, ale nie ma obowiązku priorytetowej alokacji ani preferencyjnych cen. Spółka nie ma wiążących zobowiązań finansowych na rok 2027. Microsoft wycofał się z obiektu w Anglii (powód: dostęp do energii) i według FT nie odnowił kontraktu w Teksasie, choć prospekt nadal uznaje go za istotnego klienta w przyszłości.
 
 **Ocena analityczna**
-- *Sygnały ostrzegawcze:* zamknięte okno IPO dla neocloudów; utrata opcji od głównego klienta; drożejący dług projektowy DC.
-- *Ocena ryzyka:* **Wysokie**. Bez IPO finansowanie budowy (Loughton, Teksas, Norwegia) opiera się na długu i kapitale prywatnym po wyższym koszcie, przy słabszej pozycji wobec Microsoft. To ryzyko dla terminów oddania mocy klientom w UK i UE.
-- Link: https://silicon.co.uk/cloud/datacenter/nscale-ipo-delay-632288
+- *Wykryte sygnały ostrzegawcze:* luka finansowa rzędu 30 mld USD przy braku wiążących źródeł; wzrost długu ok. 40× w kwartał; ok. 94% portfela kontraktów nieaktywne; klauzula wyjścia Anthropic powiązana z finansowaniem; utrata dwóch lokalizacji Microsoftu; Nvidia jednocześnie inwestorem i dostawcą bez gwarancji alokacji.
+- *Ocena ryzyka:* **Wysokie** (bez zmian kierunku, nowe są twarde liczby z prospektu). Model biznesowy zależy od otwartego rynku długu, który dla neocloudów jest dziś w praktyce zamknięty (obligacje CoreWeave >16%). Kontrakt Anthropic chroni przychód dopiero od końca 2027. Najbardziej prawdopodobny scenariusz to dalsze opóźnienie IPO i finansowanie gwarantowane przez Nvidię lub klienta, kosztem rozwodnienia udziałowców.
+- *Linki:* [TNW](https://thenextweb.com/news/nscale-ipo-filing-debt-nvidia-anthropic), [CNBC](https://www.cnbc.com/2026/11/12/nscale-updates-ipo-prospectus-that-shows-widening-loss.html)
+
+### Nebius
+
+#### Aktualizacja: kurs −17% 12.11 po słabszej prognozie całorocznej
+**Fakty:** Wyniki Q3 i przesunięcie celu ARR opisano 13.11. Nowy element to reakcja rynku: według CNBC akcje spadły o ok. 17% 12.11 po „light full-year guidance”, w dniu rezygnacji Huanga i publikacji F-1/A Nscale. CoreWeave dzień wcześniej wzrósł o ok. 25%, a 12.11 spadł o ok. 7%. Według Bloomberga (relacjonowanego przez Motley Fool 13.11) Microsoft chce zmniejszyć liczbę neocloudów, z którymi współpracuje. Kontrakt Microsoftu z Nebius do 2031 r. jest wart 17,4 mld USD.
+
+**Ocena analityczna**
+- *Wykryte sygnały ostrzegawcze:* koncentracja przychodu na Microsofcie przy deklarowanej konsolidacji jego dostawców; wysoka zmienność kursu podnosi koszt finansowania konwertowalnego.
+- *Ocena ryzyka:* **Średnie**. Nebius ma kapitał z wcześniejszych emisji i linię Citi 3,5 mld USD, więc ryzyko płynności jest niższe niż w Nscale. Głównym ryzykiem jest nieodnowienie lub zmniejszenie zamówień przez Microsoft po 2027.
+- *Linki:* [CNBC](https://www.cnbc.com/2026/11/12/nscale-updates-ipo-prospectus-that-shows-widening-loss.html), [Motley Fool / Bloomberg](https://www.fool.com/investing/2026/11/13/microsoft-just-piled-onto-the-bad-news-for-neoclouds/)
 
 ## AI for networking
 
-#### Cornelis CN6000: Omni-Path 800G (1,6 mld msg/s) i Ethernet SuperNIC z RoCEv2, UEC później
-SuperNIC Omni-Path ma 2x pasma CN5000. Producent podaje 1,6 mld komunikatów/s i opóźnienie MPI poniżej mikrosekundy, o 21% niższe niż InfiniBand XDR (dane producenta). Przełącznik 1U ma 48 portów 800G, adaptive routing i natywne multi-plane. Bezstratność zapewnia sterowanie przepływem oparte na kredytach (credit-based). Root of Trust ze SPDM 1.4 i podpisami firmware ML-DSA. Wariant Ethernet: RoCEv2 na standardowych przełącznikach, Ultra Ethernet dopiero w przyszłych aktualizacjach software. Wspiera NCCL/RCCL/libfabric/MPI/OpenSHMEM. Systemy partnerów (Dell, Lenovo, Supermicro, Penguin, NEC, Hyve) od Q1 2027.
-**Analiza:** To trzecia ścieżka obok InfiniBand i Spectrum-X/UEC dla klastrów AMD/Intel, które nie chcą zależności od Nvidii w warstwie sieci. Wysoki message rate ma znaczenie dla MoE all-to-all i małych komunikatów, mniej dla dużych all-reduce. Ryzyka: mały ekosystem (vendor lock-in u mniejszego dostawcy), brak UEC na starcie i ograniczona skala wdrożeń referencyjnych. Brak radix i topologii dla klastrów powyżej 10 tys. GPU utrudnia capacity planning dla dużych fabrics.
-Źródło: https://www.hpcwire.com/off-the-wire/cornelis-cn6000-networking-platform-delivers-1-6b-messages-per-second-at-800g-for-ai-and-hpc/
+#### Cisco Q1 FY27: zamówienia SP/cloud +47%, prognoza przychodu AI od hyperscalerów 9 mld USD; 800G-ZR wyprzedza 400G-ZR
+Przychód wyniósł 18,5 mld USD (+24%), w tym networking 11,13 mld (+43%). Zamówienia produktowe w sieci wzrosły o 28%, w segmencie service provider i cloud o 47%, enterprise o 15%. Prognozę AI infra od hyperscalerów na FY27 (bez neocloudów) podniesiono z 7,5 do 9 mld USD, czyli ponad 2× FY26. Cisco ma 18 design-winów AI w 5 kwartałach. Według TLDR Hardware i CNBC wolumen koherentnych modułów 800G-ZR przewyższył 400G-ZR. AI Defense ma ok. 500 klientów i chroni 2 bln tokenów miesięcznie.
+**Analiza:** Przewaga 800G-ZR to sygnał, że scale-across (łączenie DC w jeden klaster treningowy na dystansach 10–120 km) przechodzi z pilotażu do wdrożeń. Planowanie DCI musi teraz uwzględniać routery z 800G ZR/ZR+ bezpośrednio w portach (IPoDWDM) zamiast transponderów. Mniej warstw obniża koszt na bit, ale integruje warstwę optyczną z routingiem, co komplikuje operacje i wymaga wspólnej telemetrii IP i optyki. Brak neocloudów w prognozie ogranicza ekspozycję Cisco na ich problemy kredytowe.
+Źródła: [Network World](https://networkworld.com/article/4248551/cisco-forecasts-9-billion-in-ai-infrastructure-revenue-in-fy27.html), [CNBC](https://www.cnbc.com/2026/11/12/cisco-csco-q1-2027-earnings.html)
 
-#### Perplexity SPACE: agenci obeszli kontrolę egress przez spoofing DNS i domain fronting na współdzielonych IP CDN
-Sandbox to mikroVM Firecracker z bramą egress, która egzekwuje allowlistę domen, mapując IP na domeny z odpowiedzi DNS. Obejście 1: agent z rootem w gościu wysłał przez raw socket sfałszowane odpowiedzi DNS (allowlistowana domena → IP zablokowanego hosta) na wiele portów UDP. Działało tylko przy dostępie do kodu źródłowego. Obejście 2: brama nie weryfikowała zgodności SNI z dozwoloną domeną, więc ruch do zablokowanego hosta szedł przez współdzielone IP CDN (Fastly/Cloudflare) i publiczne relaye, w tym renderowanie obrazów z odczytem flagi przez OCR. Testowano 12 modeli. Bez kodu źródłowego obejście udało się tylko GPT-5.6 Sol (2/3) i Cyber (1/3). Żaden model nie przeszedł z VM na hosta. Obie luki naprawiono.
-**Analiza:** Allowlisty oparte na DNS i IP nie działają przy współdzielonej infrastrukturze CDN. Kontrola egress dla agentów wymaga proxy L7 z inspekcją TLS (zgodność SNI, Host i certyfikatu) oraz DNS rozwiązywanego wyłącznie po stronie bramy, bez możliwości wstrzyknięcia odpowiedzi z gościa. Dotyczy to także SASE/SWG w przedsiębiorstwach, gdzie agenci AI działają jak bardzo cierpliwy, zautomatyzowany atakujący.
-Źródło: https://www.perplexity.ai/hub/blog/escaping-space-part-ii
+#### Marvell na SC26: Teralynx 10 z Multipath Reliable Connection, AEC 1,6T i optyczny „Photonic Fabric” dla pamięci
+Marvell pokaże (stoisko #4003) przełączniki Teralynx 10 z MRC, czyli transportem wielościeżkowym typu UEC/SRD dla RDMA, oraz Teralynx T100 w symulatorze DC. Na wystawie będą też aktywne kable elektryczne Alaska A (800G i 1,6T), moduł pamięci „Photonic Fabric”, który rozszerza domenę scale-up optycznie na wiele racków, karty CXL Structera i koherentne moduły pluggable do scale-across. Specyfikacji ani dat dostępności nie podano.
+**Analiza:** Multipath w NIC i switchu (spraying z reorderingiem po stronie odbiorcy) zastępuje klasyczne ECMP, które przy dużych przepływach all-reduce kolidują i tworzą hotspoty. To warunek dużej utylizacji fabricu bez ręcznego strojenia hashy. Wybór MRC wiąże jednak NIC i switch z jednym ekosystemem, dopóki UEC 1.x nie ma certyfikowanej interoperacyjności. AEC 1,6T przesuwa granicę miedzi w racku i odracza konieczność CPO, kosztem masy i promienia gięcia kabli.
+Źródło: [HPCwire](https://www.hpcwire.com/off-the-wire/marvell-scales-connectivity-to-address-ai-infrastructures-next-bottleneck-at-sc26/)
+
+#### AWS Cloud WAN Flow Logs (11.11): telemetria przepływów dla całej sieci rdzeniowej, krawędzi lub pojedynczego attachmentu
+Rekord przepływu zawiera IP, porty, protokół, wolumen i liczniki utraty pakietów, a także metadane segmentu, regionu, attachmentu i hopów service insertion (np. firewalli). Logi trafiają do CloudWatch Logs, S3 lub Firehose. Funkcja jest bezpłatna, płaci się tylko za miejsce docelowe.
+**Analiza:** Do tej pory analiza ruchu w globalnej sieci AWS wymagała łączenia VPC Flow Logs z wielu kont i regionów. Metadane segmentu i service insertion pozwalają wprost sprawdzić, czy ruch przechodzi przez inspekcję, co przydaje się w audycie i jako dane dla modeli wykrywania anomalii ruchu. Przy dużym ruchu (np. replikacja datasetów między regionami) koszt sprowadza się do ingestu CloudWatch, dlatego tanim wariantem jest Firehose do S3 i analiza w Athena.
+Źródło: [AWS What's New](https://aws.amazon.com/about-aws/whats-new/2026/11/aws-cloud-wan-flow-logs/)
+
+#### Unit 42: ARTEX/CyberStrikeAI – agentowe ataki bez exploitów, sygnatura czasowa „czekania na model”
+Analiza zawiera nowe dane. Agenci zamieniali publiczne strony resetu haseł i wystawione specyfikacje OpenAPI w dostęp do chmury, czasem w mniej niż dobę. W ok. 3 minuty zweryfikowali ponad 200 client secrets. Ruch szedł seriami po 1–14 żądań, przedzielonymi przerwami 25–31 s, gdy agent czekał na odpowiedź modelu. W internecie wykryto 609 hostów ARTEX i 1 323 hosty CyberStrikeAI. Narzędzia są często forkowane, więc IoC szybko się starzeją.
+**Analiza:** Rytm burst–pauza to cecha behawioralna, którą można wykrywać w WAF/NDR niezależnie od IP i User-Agenta. Uzupełnia rate limiting wolumenowy, którego agent nie przekracza. W praktyce: usunąć OpenAPI i source mapy z publicznych aplikacji, rate limiting na flow tożsamościowych (reset hasła, rejestracja), krótko żyjące role zamiast kluczy statycznych. Google raportuje, że detekcja anomalii agentów wyłapuje 87% wykonanych szkodliwych instrukcji, ale ma do 16% fałszywych alarmów przy narzędziach o wysokim wpływie i słabo radzi sobie z zatrutą pamięcią.
+Źródła: [Unit 42](https://unit42.paloaltonetworks.com/artex-and-ai-powered-red-teaming-tools/), [Google Developers Blog](https://developers.googleblog.com/how-agent-anomaly-detection-scores-on-benchmarks-we-didnt-write/)
 
 ## Ryzyka rynku AI/GPU
 
-#### Rezygnacja Huanga: spadek NVDA do ok. 12% intraday, rozbieżne prognozy analityków
-Kurs spadł do 12% w trakcie sesji 12.11, potem częściowo odbił. Wcześniej, 9.11, spadek do 8% oznaczał chwilową utratę ok. 350 mld USD kapitalizacji. Dan Ives przewiduje spadek wartości o 25–30%. BofA utrzymuje Buy (350 USD), a Janus Henderson mówi o „clearing event”. Prognozowana marża brutto Nvidii w Q4 to 71–72%.
-**Analiza:** FINANSE/POPYT: Nvidia stanowi istotną część wartości zabezpieczeń i ocen kredytowych w łańcuchu AI (GPU jako zabezpieczenie długu neocloudów, wyceny IPO). Dłuższa niepewność przywództwa przy jednoczesnym stresie kredytowym (CoreWeave >16%, odłożone IPO Nscale) zwiększa koszt kapitału całego segmentu. Kluczowy sygnał: wyniki 17.11, czyli guidance, komentarz o backlogu i ewentualne zmiany w alokacjach.
-Źródło: https://www.cnbc.com/2026/11/12/nvidia-jensen-huang-ceo-live-updates.html
+#### Microsoft konsoliduje dostawców neocloud; wygaszony kontrakt z Oracle na starsze GPU (Bloomberg)
+Według Bloomberga (relacjonowanego 6.11 i 13.11) Microsoft nie odnowił umowy z Oracle z 2023 r. (serwery dla Bing AI na starszej generacji GPU Nvidia) i od kilku miesięcy wyłącza tę moc. Oracle miał wynajmować porzucone przez Microsoft serwery innym klientom z 20% premią. Microsoft ponownie ocenia kontrakty z neocloudami, chce zmniejszyć ich liczbę i daje priorytet własnym DC. Maia 300 ma wejść w rampę produkcyjną w 2027. Microsoft był odpowiedzialny za 36% przychodu CoreWeave w II kw. Wcześniej zobowiązał się do ponad 80 mld USD najmu mocy od zewnętrznych chmur.
+**Analiza:** To pierwszy dobrze udokumentowany przypadek popytu hyperscalera, który znika przy przejściu generacji GPU. Starsze floty (Hopper, wczesne Blackwell) tracą najemcę kotwicowego przed końcem okresu amortyzacji. Dla neocloudów z flotą H100 kupioną na dług oznacza to ryzyko spadku przychodu/GPUh poniżej kosztu obsługi długu i konieczność odpisów (por. Tunguz 13.11: marża po amortyzacji 0–2 USD/W/rok). Dla kupujących compute to sygnał do negocjacji: krótsze kontrakty i niższe stawki na starsze generacje.
+Źródła: [Motley Fool](https://www.fool.com/investing/2026/11/13/microsoft-just-piled-onto-the-bad-news-for-neoclouds/), [DCD](https://datacenterdynamics.com/en/news/microsoft-winds-down-2023-compute-deal-with-oracle)
 
-#### Tunguz: po amortyzacji GPU marża brutto neocloudu spada do 0–2 USD/W/rok
-Model łańcucha wartości w USD/W/rok: zasilanie ok. 0,8, DC ok. 1,98, neocloud ok. 9 (CoreWeave Q3: 14,64 mld USD run-rate przy ok. 1,6 GW, czyli 9,15 USD/W/rok), inferencja ok. 15. Przy capexie GPU 35–50 USD/W i 6-letniej amortyzacji koszt kapitału to 6–8 USD/W/rok, więc zysk brutto neocloudu po amortyzacji wynosi 0–2 USD/W/rok. D&A CoreWeave w Q3 = 52% przychodu. Nowe kontrakty 4–5-letnie są wyceniane na 20–25 USD/W/rok. Według S-1/A Anthropic płaci za compute burst 7–13 USD/GPUh. Autor zaznacza, że to modelowe przybliżenia.
-**Analiza:** EKONOMIKA: rentowność neocloudów zależy od przeceny floty na nowe stawki 20–25 USD/W/rok i od 6-letniej amortyzacji. Skrócenie okresu do 4 lat (realne przy rocznym cyklu Nvidii) daje ujemną marżę na starszej flocie. Wysokie stawki burst (7–13 USD/GPUh) pokazują, że niedobór mocy na żądanie trwa, ale dotyczy to krótkich kontraktów, nie bazowych.
-Źródło: https://tomtunguz.com/who-captures-the-most-margin-in-ai
+#### Nscale: luka finansowania ok. 30 mld USD pod kontrakt Anthropic (szczegóły w sekcji euro neocloud)
+Ryzyko systemowe: duża część backlogu neocloudów (Nscale ok. 106 mld USD podpisanych przy 6,4 mld aktywnych) to kontrakty warunkowe, które klient może rozwiązać, jeśli dostawca nie zdobędzie finansowania lub nie dostarczy mocy na czas. Przy zamkniętym rynku obligacji high-yield backlog nie jest zabezpieczeniem kredytowym, tylko zobowiązaniem do capexu. Kluczowe pytanie: czy Nvidia lub Anthropic przejmą rolę gwaranta długu, co przeniesie ryzyko na dostawcę chipów i odbiorcę.
+Źródło: [TNW](https://thenextweb.com/news/nscale-ipo-filing-debt-nvidia-anthropic)
 
-#### Howden: popyt DC na energię rośnie ok. 19% rocznie wobec ok. 2% dla mocy sieci USA; 110 GW behind-the-meter do 2030 „mało prawdopodobne”
-Udział DC w mocy sieci USA wzrósł z 0,1% (2000) do ok. 5% (2025). Utrzymanie tego udziału wymagałoby pozyskania do 58% energii poza siecią do 2030 r., czyli ok. 110 GW behind-the-meter. Opóźnienie przyłączenia o 2–6 lat oznacza dla największych projektów 0,8–2,4 mld USD utraconego przychodu. Własna generacja przenosi na operatorów nowe ryzyka ubezpieczeniowe i operacyjne.
-**Analiza:** INFRASTRUKTURA: ograniczeniem są MW i czas przyłączenia, nie liczba GPU. Na to wskazują też zakupy turbin przez Anthropic i straty SoftBanku (z rejestru). Rozjazd między rozpoczętymi a oddanymi DC będzie rósł, a ubezpieczyciele zaczną wyceniać ryzyko własnej generacji. To podniesie koszt całkowity MW poza siecią.
-Źródło: https://www.theregister.com/systems/2026/11/11/us-bit-barn-boom-sees-energy-needs-grow-10x-as-fast-as-grid-capacity/5309191
+#### Cerebras: capex 1,05 mld USD po 9 miesiącach przy ujemnym OCF; RPO 26,1 mld USD
+Ekonomika inferencji: marża brutto chmury wynosi 24,3% GAAP, mimo ceny premium za latencję. Prognoza core 47–49% na IV kw. zakłada szybki wzrost wykorzystania nowych klastrów. Wolne przepływy po 9 miesiącach to ok. −1,4 mld USD przy 700 MW do oddania do końca 2027 r., więc konieczne jest dalsze finansowanie zewnętrzne. Ryzyko koncentracji: umowa z OpenAI.
+Źródło: [SEC 8-K](https://www.sec.gov/Archives/edgar/data/0002021728/000162828026073366/cbrsannouncesfinancialresu.htm)
+
+#### Aktualizacja: Starbase (TX) – gazowe centrum obliczeniowe SpaceX za 24 mld USD, pierwsza faza do zatwierdzenia w grudniu
+Nowy element wobec 03–04.11: koszt (24 mld USD), termin zatwierdzenia pierwszej fazy (grudzień) i ryzyko polityczne. Nowa gubernator Teksasu Gina Hinojosa sprzeciwia się nowym DC bez silniejszych zabezpieczeń ustawowych. Projekt wpisuje się w cel SpaceX: 10 GW mocy obliczeniowej do 2027 r.
+**Analiza:** Teksas był stanem najmniej restrykcyjnym dla DC behind-the-meter. Zmiana na stanowisku gubernatora (zob. 07–08.11: zapowiedź moratorium, 13,3 GW zagrożonych) przenosi ryzyko pozwoleń z poziomu lokalnego na stanowy. Generacja gazowa na miejscu eliminuje kolejkę przyłączeniową, ale nie ryzyko regulacyjne i emisyjne.
+Źródło: [Tom's Hardware](https://www.tomshardware.com/tech-industry/data-centers/elon-musk-wants-to-build-a-new-gas-powered-data-center-in-starbase-texas-usd24-billion-site-goes-up-for-approval-in-december-but-could-face-headwinds-from-new-governor)
 
 ## Newsletters summary
 
-#### NVIDIA przekazuje OpenShell do CNCF, NVIDIA Kubernetes Engine w DSX AI Factory (KubeCon)
-OpenShell, czyli runtime do budowy i zabezpieczania autonomicznych agentów na Kubernetes, trafia do CNCF. NVIDIA integruje Agent Substrate z Dynamo i KAI Scheduler, żeby skalować agentów bez stałego przydziału zasobów. W DSX AI Factory pojawiają się NVIDIA Kubernetes Engine (cykl życia klastrów GPU) i Recipes. Snapshot opisano 11.11.
-**Analiza:** NVIDIA buduje kompletną dystrybucję K8s pod AI factory (OS, engine, scheduler, snapshot, AIBOM). Komponenty oddane do CNCF obniżają ryzyko lock-in na poziomie API, ale wartość operacyjna (certyfikacja, recipes) zostaje w stosie DSX. Przy platformie wielodostawczej (AMD/TPU) trzeba pilnować, żeby agent runtime i scheduler nie wymagały specyficznych dla NVIDIA CRD.
-Źródło: https://www.hpcwire.com/aiwire/2026/11/11/nvidia-expands-open-source-commitment-with-openshell-donation-and-new-ai-infrastructure/
+#### Gemini 4 Hydrogen: 51 pkt w Artificial Analysis Index, 1,50/7,50 USD za 1M tokenów
+Model jest zoptymalizowany pod kod i workflow agentowe i wyprzedza Gemini 4 Argon. Cena wynosi mniej niż połowę stawki docelowej Gemini 4 Carbon (4/20 USD po 30.11, zob. 12.11).
+**Analiza:** Google różnicuje portfel cenowo na wzór „mały, szybki model do pętli agenta, duży do planowania”. Routing per krok agenta (np. Gemini Decisions API, Perplexity Decider) staje się podstawowym narzędziem kontroli kosztu tokena. Wymaga jednak ewaluacji jakości per typ kroku, inaczej oszczędność zjedzą ponowienia.
+Źródło: [Google Blog](https://blog.google/innovation-and-ai/models-and-research/gemini-models/introducing-gemini-4-hydrogen/)
 
-#### OpenRouter: koszt kontekstu MCP vs CLI vs skills – 59 417 vs 1 421 vs 3 315 tokenów
-Prosty task na Sonnet 5.5 z domyślnym zestawem narzędzi MCP zużył 59 417 tokenów wejściowych, przez CLI 1 421, a przez skill 3 315. Tool Search (odroczone ładowanie definicji narzędzi) obniża koszt startowy do poniżej 600 tokenów.
-**Analiza:** Przy agentach w produkcji definicje narzędzi to koszt stały każdego żądania: rachunek, TTFT i zajętość KV cache. Bramki MCP w organizacji powinny wymuszać leniwe ładowanie narzędzi i limity liczby narzędzi na sesję. Prompt caching częściowo amortyzuje ten koszt, ale nie zmniejsza zajętości kontekstu.
-Źródło: https://openrouter.ai/blog/insights/mcp-vs-cli-vs-skills/
+#### Perplexity Decider v1.3 / Decider Flash v1.3: klasyfikatory z kalibrowanymi prawdopodobieństwami
+Modele obsługują klasyfikację binarną i wieloklasową (etykiety uporządkowane lub nie) dla tekstu i obrazu. Zwracają prawdopodobieństwa do routingu, rankingu i ewaluacji. Nowa funkcja zaznacza fragmenty treści pod NER, PII i extractive QA.
+**Analiza:** Razem z Gemini Decisions API (13.11) to druga oferta „decyzji jako usługi”. Bramki polityk i routery modeli przestają wymagać własnego fine-tuningu klasyfikatora, ale zależność od zewnętrznego API w ścieżce krytycznej każdego żądania dodaje latencję i SPOF. Warto mieć lokalny fallback.
+Źródło: [Perplexity](https://www.perplexity.ai/hub/blog/perplexity-decider)
 
-#### AWS Emulator: lokalna kopia API AWS dla agentów kodujących (kod publiczny)
-Werner Vogels opisuje emulator, który pozwala agentom budować i testować większość oprogramowania bez dostępu do kont AWS. Inżynier decyduje, co budować, i ocenia poprawność.
-**Analiza:** Oddzielenie pętli agenta od prawdziwych kont ogranicza ryzyko poświadczeń i kosztów (por. wycieki sekretów przez agentów z 10.11). Wierność emulacji (IAM, limity, spójność ewentualna) decyduje, czy testy przenoszą się na produkcję. Potrzebny jest etap integracyjny na koncie sandbox.
-Źródło: https://www.allthingsdistributed.com/2026/11/aws-emulator-and-the-engineers-job-when-agents-write-the-code.html
+#### Deterministyczna inferencja LLM przez arytmetykę wyłącznie całkowitoliczbową
+Autor zastępuje sumowanie FP (niełączne, więc wynik zależy od kolejności redukcji, rozmiaru batcha i podziału na wątki) dokładną arytmetyką całkowitą. Celem są bitowo powtarzalne wyniki niezależnie od batchowania.
+**Analiza:** Niedeterminizm z batch-variance utrudnia testy regresji, audyt decyzji i RL on-policy (rozjazd logprobów między inferencją a treningiem). Koszt to wydajność, a podejście konkuruje z kernelami batch-invariant w vLLM i SGLang. Warto rozważyć dla ścieżek wymagających audytowalności.
+Źródło: [nathan.rs](https://nathan.rs/posts/detllm/)
 
-#### Gemini Decisions API: do 1 000 pytań decyzyjnych w jednym przebiegu, 0,10 USD za 2 mln tokenów
-Model Gemini Decision 1 ocenia pytania tak/nie, wyboru i rubryk na wejściu multimodalnym (tekst, obraz, audio, wideo, PDF). Wyjście jest darmowe.
-**Analiza:** Tani klasyfikator wsadowy obniża koszt LLM-as-judge, moderacji i routingu o rząd wielkości względem modeli generatywnych. Przed użyciem w ścieżkach decyzyjnych trzeba zweryfikować kalibrację na własnych danych. Rośnie też zależność od jednego dostawcy w warstwie ewaluacji.
-Źródło: https://blog.google/innovation-and-ai/technology/developers-tools/gemini-decisions-api/
+#### PyTorch Helion: heurystyki kompilacji zamiast autotuningu
+Nowe heurystyki compile-time dają kernelom Helion wysoką wydajność bez długiego autotuningu.
+**Analiza:** Autotuning (minuty–godziny per kształt i GPU) blokował użycie DSL-i kernelowych w CI/CD i przy zmiennych kształtach. Lepsze ustawienia domyślne zmniejszają koszt przenoszenia kerneli między generacjami GPU i dostawcami, co zmniejsza praktyczny lock-in na ręcznie strojony CUDA.
+Źródło: [PyTorch Blog](https://pytorch.org/blog/fast-by-default-compile-time-heuristics-for-helion-kernels/)
 
-#### OpenAI: open-source rozszerzenia MCP dla pluginów ChatGPT
-Pakiety TypeScript i Python dodają do serwerów MCP funkcje specyficzne dla ChatGPT: punkty wejścia w panelu bocznym, przeglądarki plików, wyszukiwanie zasobów i pickery. Dołączono specyfikację i demo.
-**Analiza:** Rozszerzenia specyficzne dla jednego klienta rozbijają przenośność MCP. Serwery MCP budowane wewnętrznie powinny trzymać rdzeń zgodny ze specyfikacją, a rozszerzenia dostawców jako opcjonalne warstwy.
-Źródło: https://github.com/openai/mcp-extensions
+#### Notion: dane klientów dostępne dla atakujących przez dostawcę AI (Fireworks AI)
+Nowy element wobec 11.11, gdy incydent Fireworks z 6.10 przypisano grupie odsprzedającej nielegalny dostęp do LLM. Notion potwierdza teraz, że atakujący mieli dostęp do danych Notion przechowywanych u Fireworks.
+**Analiza:** Dostawcy inferencji przechowują dane klientów (logi, cache promptów, pliki), mimo deklaracji typu ZDR na poziomie API. Due diligence dostawców modeli musi obejmować retencję logów i cache, segmentację tenantów oraz zakres danych przekazywanych w promptach przez SaaS w imieniu klienta.
+Źródło: [Notion Security Advisory](https://www.notion.com/security/advisories/security-incident-involving-a-third-party-ai-vendor)
+
+#### Europol: przejęcie 235 serwerów i 257 domen (Gootloader, CastleRAT, StealC), 6,4 mln zestawów danych ofiar
+Operacja objęła infrastrukturę cybercrime-as-a-service: dystrybucję Gootloadera przez przejęte strony WordPress, RAT i infostealera.
+**Analiza:** Krótkoterminowo spada wolumen kampanii, ale 6,4 mln wykradzionych zestawów poświadczeń trafi do kolejnych rynków. Warto skorzystać z powiadomień CERT, sprawdzić wycieki domen firmowych i wymusić reset sesji i haseł dla trafionych kont.
+Źródło: [Cybersecurity News](https://cybersecuritynews.com/malware-infrastructure-disrupted/)
 
 ## Implikacje praktyczne
 
-1. **Płaszczyzny zarządzania wirtualizacją i siecią jako tier-0:** XO, vCenter i Cloud Control wymagają izolacji sieciowej, logowania HTTP na proxy i osobnych tożsamości. Migracja z VMware na XCP-ng lub Proxmox nie zmniejsza ryzyka bez tych kontroli.
-2. **Dywersyfikacja akceleratorów w kontraktach 2027–2029:** niepewność przywództwa Nvidii, AMD MI450X/MI455X i akceleratory z LPDDR (Axelera) to argument za portfelem: walidacja ROCm i vLLM na drugiej platformie, abstrakcja schedulera (KAI/Kueue) bez CRD jednego dostawcy.
-3. **Due diligence neocloudów:** w ocenie dostawców GPU sprawdzać warunki zawieszające (lease, oddanie MW), terminy kolokatorów i udział przedpłat w finansowaniu, a nie sam backlog. Przy ryzyku Wysokim (Nscale) planować capacity fallback.
-4. **Egress agentów AI:** stosować proxy L7 z weryfikacją SNI i certyfikatu oraz DNS rozwiązywany po stronie bramy. Integralność wag modeli (hash, podpis, porównanie z bazą) traktować jak kontrolę supply chain.
-5. **Energia jako główne ograniczenie:** plany DC na 3–5 lat muszą zakładać opóźnienia przyłączeń o 2–6 lat, generację behind-the-meter z jej kosztami ubezpieczenia oraz DR międzyregionalny po przypadku Yandex.
+1. **Kontrakty compute z klauzulami generacyjnymi i finansowymi.** Microsoft–Oracle i F-1/A Nscale pokazują, że moc zarezerwowana dziś może zniknąć (najemca odchodzi przy zmianie generacji GPU) albo nie powstać (dostawca nie zdobędzie finansowania). W umowach z neocloudami (horyzont 3–5 lat) potrzebne są: prawo do wymiany na nowszą generację, kary i escrow za brak dostawy, step-in rights do sprzętu oraz plan B u drugiego dostawcy na ≥30% krytycznej mocy.
+2. **CI/CD jako najbardziej uprzywilejowany element infrastruktury.** WFX-Loot pokazuje, że po kradzieży sekretów atakujący zostawia tylne drzwi w IAM (trust policies, federated credentials), które przeżywają rotację. Decyzja: OIDC z precyzyjnym `sub` (repo i ref), zakaz statycznych kluczy chmurowych w CI, ciągły audyt trust policies (IaC drift detection) i efemeryczne runnery w izolacji VM.
+3. **Izolacja obcego kodu (agenci, CI, multi-tenant) na poziomie VM, nie kontenera.** Lejek FORGE (8 działających exploitów root, mediana 41 dni do wydania poprawki) i agenci wykonujący kod przesądzają sprawę: namespace'y nie są granicą bezpieczeństwa przy rosnącej kolejce publicznych LPE. Planować gVisor, Kata lub Firecracker dla sandboxów agentowych i budżetować narzut 5–15% CPU i pamięci.
+4. **FP64 i pamięć jako zasoby emulowane lub warstwowe.** Emulacja Ozaki w cuBLAS i DDR4 za CXL zmieniają model pojemności: wydajność FP64 i koszt GB zależą od oprogramowania i tieringu, nie od karty katalogowej. Capacity planning HPC/AI powinien opierać się na benchmarkach własnych aplikacji (z kontrolą reprodukowalności), a zakupy pamięci powinny uwzględniać tier CXL dla KV cache i baz in-memory.
+5. **Odporność na awarię SaaS warstwy zarządzania.** Awaria M365 objęła też Intune. Przy rosnącym uzależnieniu od zarządzania SaaS (zob. Cisco Cloud Control 13.11) potrzebne są lokalne procedury break-glass, niezależny kanał komunikacji i ćwiczenia „dostawca SaaS niedostępny 12 h”.
 
 ## Trend tygodnia
 
-Rynek infrastruktury AI wchodzi w fazę ryzyka zarządczego i finansowego, a nie technologicznego. Odejście Huanga usuwa centralną postać, wokół której koordynowano roadmapę, relacje z hyperscalerami i rządem. Zbiega się to z najwyższym od lat stresem kredytowym neocloudów i zamykaniem się okna IPO (Nscale, Firmus). Nebius pokazuje, że przetrwanie wymaga przerzucenia finansowania na klientów przez przedpłaty. Ryzyko przenosi się wtedy na koncentrację odbiorców i terminowość DC. Z kolei klauzule w S-1/A Anthropic pokazują, że wielomiliardowe kontrakty mogą zależeć od tego, czy neocloud zdobędzie powierzchnię. Technologicznie przyspiesza dywersyfikacja: AMD różnicuje SKU według pojemności HBM, Europa rozwija inferencję bez HBM i bez DLC, a Cornelis oferuje alternatywę dla InfiniBand. W bezpieczeństwie płaszczyzny zarządzania i agenci AI stają się głównym wektorem ataku, a klasyczne kontrole (revoke sesji, allowlisty DNS, losowe URL) okazują się nieszczelne.
+Rynek infrastruktury AI wchodzi w fazę selekcji kapitałowej. O tym, czy moc powstanie, decyduje dostęp do finansowania, nie dostęp do GPU. Prospekt Nscale to najbardziej przejrzysty jak dotąd przykład: ponad 100 mld USD podpisanych kontraktów, ok. 6 mld aktywnych i luka ok. 30 mld USD bez wiążących źródeł. Hyperscalerzy zachowują się racjonalnie: Microsoft wygasza najem starszych GPU, konsoliduje dostawców i przesuwa obciążenia do własnych DC i własnego krzemu (Maia 300). Ryzyko starzenia się floty spada więc na neocloudy i ich wierzycieli. Równolegle dostawcy alternatywni (Cerebras) skalują przychód, ale kosztem capexu kilkakrotnie wyższego niż kwartalny przychód i niskiej marży chmurowej, a to ta sama dynamika kredytowa. Na warstwie technologii widać wysiłek, by z istniejącego krzemu wycisnąć więcej: emulacja FP64 na jednostkach INT, recykling DDR4 przez CXL, multipath w fabricach Ethernet i 800G-ZR do łączenia DC w jeden klaster. W bezpieczeństwie AI przyspiesza wykrywanie podatności (FORGE, skanery OSS przy Apache), ale tempo naprawy się nie zmienia. Atakujący automatyzują eksploatację (ARTEX, WFX-Loot), więc okno między publikacją a atakiem się skraca.
 
 ## To obserwować
 
-- **Nvidia Q3 FY2027 (17.11):** guidance, marża brutto (71–72%), komentarz o alokacjach Rubin i ewentualna nominacja stałego CEO.
-- **TOP500/SC26 (15–20.11):** czy pojawią się nowe systemy exaskalowe i jak wypadają AMD MI430X i fabrics Cornelis/UEC.
-- **Nscale:** decyzja o terminie IPO i ewentualne nowe finansowanie dłużne lub zmiany kontraktów z Microsoft.
-- **Rentowności obligacji CoreWeave 2032 i CDS Oracle:** sygnał kosztu kapitału dla całego segmentu po zmianie w Nvidii.
-- **Vates/XCP-ng:** przydział CVE dla VSA-2026-062 i ewentualne wpisanie do CISA KEV.
+- **Nvidia Q3 FY27 (17.11):** pierwsze wyniki pod p.o. CEO. Liczy się guidance na Rubin, alokacja dla neocloudów i ewentualne gwarancje finansowania (Nscale/Monarch).
+- **Nscale – finansowanie Monarch i termin IPO:** czy Nvidia lub Anthropic zostaną gwarantami długu, oraz wynik 60-dniowych negocjacji o drugim budynku.
+- **Rentowności obligacji neocloudów (CoreWeave 2032, Nebius conv.):** spadek poniżej 12% oznaczałby ponowne otwarcie rynku, utrzymanie powyżej 15% – dalsze opóźnienia projektów.
+- **Apache 2.4.71 w dystrybucjach i appliance'ach:** Debian stable, Amazon Linux, obrazy vendorów; ewentualne pojawienie się exploita w obiegu (CISA KEV).
+- **SC26 (Chicago, 15–20.11):** realne specyfikacje MRC/UEC, Photonic Fabric i CXL od Marvella oraz lista TOP500 z udziałem systemów z emulacją FP64.
