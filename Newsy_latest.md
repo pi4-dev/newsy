@@ -1,134 +1,79 @@
-# Raport Zbiorczy IT – 2026-11-15
+# Raport Zbiorczy IT – 2026-11-16
 
-**Okno przyrostowe:** od raportu z 2026-11-14 (weekend, mało nowych zdarzeń pierwotnych). Zdarzenia z 12–13.11 ujęto tylko wtedy, gdy nie było ich w rejestrze. Źródła: newslettery z etykietą NEWSY (SemiAnalysis, The Business Engineer, Own news), RSS NVIDIA Developer Blog, CISA, LMSYS, Federal Reserve, WWW. Problemy ze źródłami: RSS SemiAnalysis nadal zwraca wpisy z 2025 r.; RSS HPCwire/AIwire zwraca pusty kanał lub 403 (Cloudflare); gartner.com nie ma RSS i nic nowego tam nie znalazłem.
+Okres: od edycji 2026-11-15 do 2026-11-16 (Europe/Warsaw). Uwzględniono także pozycje z 9–12.11, których nie było w poprzednich edycjach, i aktualizacje z nowymi faktami. Pominięte sekcje (brak nowych, zweryfikowanych informacji): euro neocloud, AI for networking, Newsletters summary (etykieta `NEWSY` jest pusta).
 
 ## Raport technologiczny
 
-### Biznes
-
-#### Cohere zamyka przejęcia AISLE i cubic (13.11) – powstaje Cohere Cyber
-Cohere ogłosił zamknięcie dwóch przejęć. AISLE (zamknięte 10.11, list intencyjny z 16.10) buduje autonomiczne systemy do wykrywania, walidacji i naprawy nieznanych podatności. Według Cohere w ciągu 14 miesięcy znalazł ponad 650 CVE. cubic robi AI code review z automatyczną naprawą. Warunków nie ujawniono. AISLE działa teraz jako Cohere Cyber, a Praga ma być globalnym hubem tej jednostki.
-**Znaczenie:** Dostawcy modeli „suwerennych” dokładają własne narzędzia do wykrywania podatności i bezpiecznego kodowania. Wyszukiwanie podatności przez AI staje się funkcją platformy, nie osobnym produktem. Dla zespołów infrastruktury oznacza to więcej zgłoszeń CVE od narzędzi AI, więc trzeba mieć triage odporny na wolumen (por. FORGE z 14.11). Rośnie też ryzyko lock-in: skaner, model i pipeline naprawczy pochodzą od jednego dostawcy.
-Źródło: [Dealroom](https://dealroom.co/news/172615-cohere-buys-aisle-and-cubic-to-add-cyber-defense-to-sovereign-ai)
-
 ### Technologia
 
-#### CISA KEV (13.11): Check Point CVE-2026-123039 i UnrealIRCd CVE-2026-114713
-CISA dodała do katalogu KEV dwie aktywnie wykorzystywane luki. Pierwsza to CVE-2026-123039 w wielu produktach Check Point: błędne nadanie uprawnień do krytycznego zasobu. Druga to CVE-2026-114713 w UnrealIRCd: niewłaściwa neutralizacja separatorów. Alert CISA nie podaje wektora, wersji ani IoC, a dostępne źródła wtórne nie opisują jeszcze CVE-2026-123039.
-**Znaczenie:** To kolejna w 2026 r. aktywnie wykorzystywana luka Check Point, po CVE-2026-50751 (VPN, Qilin), CVE-2026-16232 i CVE-2026-93616 (serwer zarządzający). Klasa błędu (uprawnienia do zasobu) sugeruje eskalację lokalną lub obejście kontroli w warstwie zarządzania, a nie pre-auth RCE. To jednak wniosek z samej klasy CWE. Do czasu publikacji advisory warto ograniczyć dostęp do interfejsów zarządzania (SmartConsole/Management API) do sieci administracyjnej i przejrzeć konta oraz uprawnienia na serwerach SMS/MDS.
-Źródło: [CISA](https://www.cisa.gov/news-events/alerts/2026/11/13/cisa-adds-two-known-exploited-vulnerabilities-catalog)
+#### Aktualizacja: N-able N-central „4EverAble2Shell” – exploitacja mimo HF2, 21 serwerów z koparkami
+Nowy łańcuch ataku. Krok 1: CVE-2026-90436 w Apache Axis daje bez uwierzytelnienia RCE jako konto `nable` (wymaga włączonego Legacy API; według N-able to ustawienie domyślne). Krok 2: nadużycie helpera `setLDFileOwner` przez symlink, przejęcie skryptu należącego do roota i wykonanie przez `serverControl` jako root (bez CVE, Previdian: VULN-2026-0009). Huntback naliczył co najmniej 21 przejętych serwerów produkcyjnych, z czego 19 miało już 2026.4.1.26 HF2. Ładunek to XMRig ograniczony do ok. 50% rdzeni, żeby utrudnić wykrycie. Równolegle opublikowano „Agent2Shell” (SYSTEM na endpointach Windows przez agenta). N-able wyłączył integrację z Intune i zaleca wyłączenie Legacy API.
+**Znaczenie:** Hotfix z 10.11 nie zamknął powierzchni ataku, więc samo „mamy HF2” nie wystarcza. Trzeba wyłączyć Legacy API, poszukać IoC (`/dms/services/ServerUI` z `jline.internal.TerminalLineSettings`, usługa `xvd.service`, katalogi `/tmp/.xvd` i `/var/tmp/.xvd`), a każdy trafiony serwer odbudować od zera, bo atakujący miał root. Kopanie kryptowalut to tylko obserwowany ładunek. Z roota na serwerze RMM jest bezpośrednia droga do wszystkich zarządzanych endpointów klientów MSP.
+Źródło: [BleepingComputer](https://bleepingcomputer.com/news/security/new-n-able-4everable2shell-zero-day-exploited-hours-after-poc-released)
+
+<hr>
+
+#### TSMC: dane pracowników wyciekły z systemu dostawcy chmury (15.11)
+W zgłoszeniu do SEC TSMC potwierdza, że dane obecnych i byłych pracowników trafiły do sieci. Według dochodzenia pochodzą z „system services of a cloud service provider”, a nie z systemów TSMC. Dostawcy nie wskazano. Sprzedający („SmithBianl”) twierdzi, że ma 6,9 GB i ok. 46 tys. rekordów: numery ID, adresy i dane bankowe. Opublikował próbkę 499 wierszy, a aukcję zaczął od 3 BTC.
+**Znaczenie:** To kolejny przypadek, w którym granicą ryzyka okazuje się SaaS/HR, a nie własna infrastruktura. Lekcja dla architektury: dane HR i płacowe u zewnętrznych dostawców powinny mieć szyfrowanie z kluczem klienta (BYOK/HYOK), minimalny zakres pól i audyt dostępu po stronie dostawcy w umowie. Bez tego nawet firma o poziomie bezpieczeństwa TSMC nie potrafi wskazać wektora ataku.
+Źródło: [BleepingComputer](https://www.bleepingcomputer.com/news/security/tsmc-employee-data-breach-linked-to-cloud-provider/)
+
+<hr>
+
+#### FRRouting bgpd: double-free i use-after-free umożliwiające zdalny DoS (CVE-2026-120221, CVSS 8,2, publ. 15.11)
+Błąd zarządzania pamięcią w demonie `bgpd` pozwala zdalnie wywołać awarię procesu BGP. Informacji o exploitacji brak.
+**Znaczenie:** FRR jest płaszczyzną sterowania w SONiC, w wielu fabrikach DC z BGP-to-the-host (Cilium/Calico, MetalLB) i w routerach programowych. Restart `bgpd` zrywa sesje i powoduje masowe wycofanie tras. Przy BGP unnumbered na każdym ToR pojedynczy spreparowany UPDATE od peera może się rozlać na cały pod. Do zrobienia: zaktualizować FRR i obrazy SONiC, włączyć `bgp graceful-restart` i rozdzielić routing z rodzin adresów. Peering z hostami/klastrami K8s traktować jako niezaufany (filtry, maximum-prefix, TTL security).
+Źródło: [CVE Brief 15.11](https://cvebrief.com/archive/2026/11/15/), [CVE.org](https://www.cve.org/CVERecord?id=CVE-2026-120221)
+
+<hr>
+
+#### PostgreSQL 18.7 / 17.12 / 16.16 / 15.20 / 14.25 (12.11): poprawki bezpieczeństwa
+Wydanie zbiorcze dla wszystkich wspieranych gałęzi i PostgreSQL 19 RC2. Według przeglądu Senthorus poprawka obejmuje type confusion CVE-2026-6460 (CVSS 8,8): użytkownik z prawem tworzenia obiektów może wykonać kod jako konto systemowe PostgreSQL. Tego CVE nie potwierdzono w drugim źródle. Po aktualizacji trzeba przebudować zainstalowane rozszerzenia w C.
+**Znaczenie:** W platformach DBaaS i multi-tenant (prawo CREATE dla aplikacji) eskalacja z roli SQL do konta OS łamie izolację między tenantami na wspólnej instancji. Wymóg przebudowy rozszerzeń w C (PostGIS, pgvector, timescale) wydłuża cykl patchowania obrazów. Trzeba go uwzględnić w pipeline'ach operatorów (CloudNativePG, Crunchy).
+Źródło: [PostgreSQL – komunikat wydania](https://www.postgresql.org/message-id/attachment/208544/20261112updaterelease.md), [Senthorus Weekly Review](https://blog.senthorus.ch/posts/weekly_reviews/16_11_2026)
 
 ## Raport AI-ML
 
-### Biznes
-
-#### Commerce finalizuje regułę o zdalnym dostępie Chińczyków do GPU w 7 kolejnych krajach; chińskie firmy rezerwują moc za granicą
-Według The Information (12.11) Departament Handlu finalizuje regułę BIS. Ma ona zakazać chińskim firmom AI zdalnego korzystania z zaawansowanych chipów w DC w siedmiu kolejnych krajach. Znane są trzy z nich: Malezja, Singapur i Tajlandia. Ogłoszenie jest możliwe jeszcze w listopadzie, trwają konsultacje międzyresortowe. Prawnik Baker McKenzie twierdzi, że obecna ustawa nie daje Commerce takiego umocowania. Dałby je RASA (H.R. 2683), przyjęty przez Izbę 369–22 w styczniu i nadal czekający w senackiej komisji bankowej. Według Reutersa chińskie firmy AI kontaktują operatorów DC za granicą, żeby zarezerwować moc na GPU Nvidii przed wejściem reguły w życie. Wcześniej (FT, 3.11) Nvidia zażądała od partnerów chmurowych, by w nowych kontraktach co najmniej 51% usług sprzedawali firmom spoza Chin.
-**Analiza:** Ryzyko dotyczy przede wszystkim popytu w neocloudach z Azji Południowo-Wschodniej, ale SemiAnalysis wskazuje też operatorów z Europy, krajów nordyckich, Kanady i USA, którzy sprzedają moc chińskim klientom. Jeśli reguła obejmie istniejące kontrakty (to nie jest jeszcze wiadome), część zakontraktowanego przychodu zniknie z dnia na dzień. Zwolnione klastry trafią wtedy na rynek spot i obniżą ceny GPUh. Wyścig o rezerwacje przed regułą może chwilowo zawyżyć utylizację i ceny w SEA. Dla planowania pojemności: klauzule end-use, KYC dla końcowego beneficjenta i prawo wypowiedzenia z powodu sankcji muszą być w umowach, zanim reguła wejdzie.
-Źródła: [MLQ.ai (The Information, Reuters)](https://mlq.ai/news/chinese-ai-firms-rush-to-lock-in-overseas-nvidia-capacity-as-commerce-readies-a-rule-on-remote-chip-access/), [Congress.gov H.R.2683](https://www.congress.gov/bill/119th-congress/house-bill/2683/all-actions), [Yahoo Finance (FT, limit 51%)](https://finance.yahoo.com/technology/articles/nvidia-tells-cloud-clients-cap-073914242.html)
-
-#### Aktualizacja: Anthropic IPO – wycena 18.11, debiut na Nasdaq (ANT) 19.11
-Nowy element względem rejestru: według komunikatu spółki z 12.11 cena ma zostać ustalona w środę 18.11, a handel ma ruszyć w czwartek 19.11. Widełki 70–78 USD i 825 mln akcji bez zmian. Wynik Nvidii (17.11) przypada dzień przed wyceną.
-**Analiza:** Zbieżność dat sprawia, że wynik i prognoza Nvidii pod nowym CEO bezpośrednio wpłyną na popyt na ofertę ANT. Wycena Anthropic posłuży rynkowi jako punkt odniesienia dla wycen innych laboratoriów i ich zobowiązań compute (ok. 895 mld USD wg S-1). Słaby debiut utrudni finansowanie kontraktowe neocloudów, których głównym klientem jest Anthropic (Nscale, CoreWeave).
-Źródło: [Trading 212 (podsumowanie komunikatu)](https://www.trading212.com/learn/investing-101/anthropic-ipo)
-
 ### Technologia
 
-#### SGLang Consortium (12.11): NVIDIA, AMD, Intel, Google, Meta, Cloudflare, Modal, RadixArk
-LMSYS Org ogłosił na pierwszym SGLang Summit konsorcjum członków założycieli silnika inferencji SGLang. Decyzje techniczne i akceptacja kodu zostają u maintainerów. Członkowie współtworzą roadmapę i finansują wspólną pracę inżynierską: obsługę modeli frontier, reasoning i multimodal, inferencję rozproszoną oraz optymalizacje sprzętowe. W ogłoszeniu nie ma benchmarków ani podziału zadań.
-**Analiza:** SGLang dostaje formalne wsparcie wszystkich trzech dostawców akceleratorów ogólnego przeznaczenia oraz Google (TPU, praca z RadixArk od 07.2026). To zmniejsza ryzyko lock-in w warstwie serwowania: ten sam stos (RadixAttention, prefix caching, disaggregated prefill/decode, wide EP) staje się przenośny między CUDA, ROCm, XPU i TPU. Dla architektów oznacza to wybór SGLang lub vLLM jako warstwy abstrakcji zamiast TensorRT-LLM, jeśli flota ma być heterogeniczna. Ryzyko: SemiAnalysis zauważa, że SGLang i vLLM korzystają z kerneli chińskich laboratoriów (DeepEP, DeepGEMM, MSA, FlashKDA). Zaostrzenie kursu wobec Chin może zatrzymać ten dopływ optymalizacji pod Blackwell.
-Źródła: [LMSYS](https://www.lmsys.org/blog/2026-11-12-sglang-consortium), [HPCwire/AIwire](https://www.hpcwire.com/aiwire/2026/11/13/lmsys-org-forms-sglang-consortium-with-nvidia-amd-google-and-meta/)
+#### GPUStack CVE-2026-102895 w CISA KEV: obejście uwierzytelnienia → admin + RCE
+Zdalny, nieuwierzytelniony atakujący dostaje pełne uprawnienia administratora menedżera klastrów GPU GPUStack i może wykonać dowolny kod (CVSS 9,5, w KEV od 9.11). W tej samej partii KEV są FreeSWITCH CVE-2026-116779 (wstrzykiwanie poleceń przez SIP MESSAGE), Cisco BroadWorks CVE-2026-20320 (XXE w OCI-P) i IBM Aspera Faspex CVE-2026-123218.
+**Analiza:** Panele orkiestracji inferencji (GPUStack, Ollama, panele vLLM, Ray Dashboard) mają dostęp do GPU, wag modeli, tokenów HF i zwykle do sieci wewnętrznej. To cel o wysokiej wartości: cryptojacking na GPU kosztuje operatora od kilku do kilkunastu USD za GPU-h, a do tego dochodzi kradzież wag. Do zrobienia: nie wystawiać tych płaszczyzn sterowania bez ZTNA/mTLS, wydzielić je w osobnym segmencie, monitorować utylizację GPU pod kątem obciążeń spoza harmonogramu (anomalia SM-util przy braku zadań w kolejce).
+Źródło: [CVE Brief 15.11](https://cvebrief.com/archive/2026/11/15/), [CISA KEV](https://www.cisa.gov/known-exploited-vulnerabilities-catalog)
 
-## euro neocloud
+<hr>
 
-### Europejscy operatorzy sprzedający moc chińskim klientom (nienazwani)
-
-#### Ekspozycja na regułę o zdalnym dostępie i RASA
-**Fakty:** SemiAnalysis (12.11) pisze, że zna neocloudy m.in. z Europy i krajów nordyckich, które aktywnie sprzedają moc chińskim firmom. RASA czeka na głosowanie w Senacie. Commerce finalizuje regułę dla 7 krajów (wymienione dotąd tylko kraje SEA). Od 3.11 Nvidia wymaga w nowych kontraktach co najmniej 51% klientów spoza Chin. Wcześniej (rejestr 13.11) Moonshot AI szukał w Europie klastrów Blackwell z ponad 8000 GPU.
-**Ocena analityczna:**
-- *Sygnały ostrzegawcze:* popyt chiński to dla części operatorów marginalny, ale wysokomarżowy przychód z krótkimi kontraktami. Regulacje mogą go odciąć szybciej, niż da się znaleźć zastępczych najemców. Ryzyko compliance (EAR, klauzule end-use Nvidii) przenosi się na finansujących (covenanty kredytów pod GPU).
-- *Ocena ryzyka:* **Średnie** dla mniejszych operatorów z wysokim udziałem klientów z Azji. Dla dużych (Nebius, Nscale), których backlog opiera się na Microsoft, Meta i Anthropic, **niskie**.
-- Linki: [MLQ.ai](https://mlq.ai/news/chinese-ai-firms-rush-to-lock-in-overseas-nvidia-capacity-as-commerce-readies-a-rule-on-remote-chip-access/), [SemiAnalysis](https://newsletter.semianalysis.com/p/nvidia-and-the-world-without-jensen)
-
-### Nscale / Nebius (zależność od wsparcia bilansowego Nvidii)
-
-#### Gwarancje Nvidii pod neocloudy a zmiana CEO
-**Fakty:** Według SemiAnalysis (na podstawie raportów Nvidii) bruttowe gwarancje pozabilansowe Nvidii wyniosły na koniec II kw. fiskalnego 530 mld USD, wobec 184 mld USD kwartał wcześniej. Obejmują 36 mld USD minimalnych progów take-or-pay pod mocą neocloudów. Portfel udziałów kapitałowych Nvidii to 99 mld USD. Nscale jest wspierany przez Nvidię i w F-1/A (rejestr 14.11) wskazuje potrzebę dodatkowego kapitału na zobowiązania 2027. Nebius dostał od Nvidii 2 mld USD inwestycji.
-**Ocena analityczna:**
-- *Sygnały ostrzegawcze:* SemiAnalysis i The Business Engineer zwracają uwagę, że nowe gwarancje i alokacje zależały od osobistych decyzji Huanga. Istniejące zobowiązania pozostają, ale kolejne transze (np. oczekiwana dalsza transza Nvidii dla Nscale) wymagają decyzji nowego zarządu. Pierwszym testem będzie komentarz do wyników 17.11.
-- *Ocena ryzyka:* **Wysokie** dla Nscale: IPO bez widełek, luka finansowania ok. 30 mld USD, kurs rówieśników −17% 12.11. **Średnie** dla Nebius, który ma szerszy dostęp do rynku długu i akcji.
-- Linki: [SemiAnalysis](https://newsletter.semianalysis.com/p/nvidia-and-the-world-without-jensen), [The Business Engineer](https://businessengineer.ai/p/this-week-in-the-ai-supercycle-ai)
-
-### Program UE AI Gigafactories (dotyczy wszystkich operatorów)
-
-#### Zamknięcie składania ofert 12.11
-**Fakty:** Według specyfikacji przetargu EuroHPC (EUROHPC-2026-CEI-AIGF-01) termin składania ofert na „do siedmiu” AI Gigafactories (do ok. 150 MW na lokalizację, co najmniej 7 państw) minął 12.11 o 16:00. Jedno źródło wskazywało na stronie wezwania termin 3.12, więc data wymaga potwierdzenia. Rozstrzygnięcia spodziewane są na początku 2027 r., budowa później w 2027 r. Nie ma publicznych informacji o liczbie ofert ani konsorcjach.
-**Ocena analityczna:**
-- *Sygnały ostrzegawcze:* finansowanie publiczne (do ok. 10 mld EUR) ma zostać dopełnione co najmniej 20 mld EUR kapitału prywatnego. To trudne przy obecnych kosztach długu neocloudów (CoreWeave >16% na niezabezpieczonych obligacjach). Opóźnienie decyzji do 2027 r. nie pomaga płynności operatorów, którzy liczą na ten program.
-- *Ocena ryzyka:* **Średnie**: program wydłuża horyzont, ale nie rozwiązuje bieżących luk finansowych.
-- Linki: [DC Market Insights](https://www.dcmarketinsights.com/news/the-eus-e30-billion-ai-gigafactory-tender-wants-7-sites-of-up-to-150-mw-bids-are-due-12-november), [Sullivan & Cromwell](https://www.sullcrom.com/insights/memo/2026/October/EuroHPC-Joint-Undertaking-Launches-AI-Gigafactories-Call)
-
-## AI for networking
-
-#### NVIDIA Scale-In: BlueField-4 + DOCA + Spectrum-X jako warstwa bezpieczeństwa i telemetrii dla agentowych AI factories (12.11)
-NVIDIA przedstawia Scale-In jako osobny filar sieciowy, obok scale-up i scale-out. Silniki bezpieczeństwa w krzemie BlueField-4 działają out-of-band i zbierają telemetrię z pamięci, storage, GPU i CPU. NVIDIA Sentry (na DOCA) monitoruje zachowanie agentów i poddaje kwarantannie te, które wychodzą poza zdefiniowane granice. OpenShell (od 10.11 w CNCF) zarządza wykonywaniem agentów, dostępem i routingiem inferencji. Brak danych wydajnościowych i dat dostępności.
-**Analiza:** Egzekwowanie polityk przenosi się z hosta (eBPF, agent EDR) na DPU. Atakujący z uprawnieniami root na hoście nie wyłączy więc telemetrii, a izolacja tenantów nie obciąża CPU hosta. Koszt: każdy węzeł potrzebuje BlueField-4, a polityki i telemetria są pisane w DOCA, co oznacza silny vendor lock-in w warstwie, która w ekosystemie otwartym była przenośna (eBPF/Cilium). Failure mode: błędna polityka kwarantanny na DPU działa jak wyłącznik sieciowy dla całych pul agentów, więc potrzebne są tryby audit-only i stopniowy rollout. Planując pojemność, trzeba liczyć moc i koszt DPU per węzeł oraz to, czy telemetria out-of-band nie konkuruje o pasmo z ruchem storage na tym samym NIC.
-Źródło: [SiliconANGLE](https://siliconangle.com/2026/11/12/ai-networking-nvidia-scalein-security-agentic-aifactoriesdatacenters/)
+#### ATTO SiliconDisk (SC26, 15.11): pamięć współdzielona na DRAM przez NVMe-oF
+Urządzenie przedpremierowe: 4× 100GbE, do 35 GB/s, do 6,4 mln IOPS 4K, opóźnienie dostępu poniżej 600 ns (deklaracja producenta). Udostępnia standardowy interfejs blokowy NVMe-oF. Domyślnie działa bez trwałości danych, opcjonalnie z mechanizmami persystencji. Brak zużycia nośnika i garbage collection. Nie podano pojemności, transportu (RDMA czy TCP), ceny ani daty GA.
+**Analiza:** To kategoria pośrednia między lokalnym HBM/DRAM a NVMe flash. Pasuje do offloadu KV cache i warstwy prefill/decode w disaggregated inference (LMCache, NIXL, Dynamo KVBM) oraz do checkpointów pośrednich. 35 GB/s na urządzenie to ok. 1/2–1/3 przepustowości portów 800G na węzeł GPU, więc skalowanie wymaga wielu urządzeń i dobrego sharding'u. Opóźnienie poniżej 600 ns dotyczy samego medium; end-to-end przez fabric z NVMe-oF/RDMA i tak wyniesie kilka µs. Główne ryzyko to brak trwałości: utrata zasilania kasuje zawartość, więc nadaje się tylko do danych odtwarzalnych. Do tego niewielki dostawca w roli komponentu krytycznego dla latency.
+Źródło: [HPCwire / ATTO](https://www.hpcwire.com/off-the-wire/atto-to-demonstrate-pre-release-silicondisk-ethernet-connected-dram-based-storage-at-sc26/)
 
 ## Ryzyka rynku AI/GPU
 
-#### Fed Financial Stability Report (13.11): >680 mld USD długu „advanced computing” w 10 miesiącach 2026, >2 bln USD take-or-pay i gwarancji wartości rezydualnej
-Fed wylicza, że emisja długu związanego z zaawansowanymi obliczeniami przekroczyła 680 mld USD do października 2026 r. To pięć razy więcej niż 130 mld USD za cały 2023 r. Udział tego długu w emisjach IG spółek niefinansowych wzrósł z poniżej 6% w 2023 r. do ok. 31%. Publicznie wyemitowany dług w obiegu przekracza 1,1 bln USD. Prywatny kredyt utrudnia pełny pomiar, więc to dolna granica. Leasingi jeszcze nierozpoczęte mają niezdyskontowaną wartość ponad 1 bln USD. Kontrakty take-or-pay i gwarancje wartości rezydualnej przekraczają 2 bln USD. Największe banki USA mają blisko 1 bln USD ekspozycji na big tech, deweloperów DC, SPV, wehikuły private credit i utility. Raport opisuje „circular financing” jako podatność wymagającą monitoringu.
-**Analiza:** To pierwsze oficjalne oszacowanie skali zobowiązań pozabilansowych (leasingi, take-or-pay), które na poziomie systemu przewyższają dług bilansowy. Kanał transmisji: spadek utylizacji GPU lub cen GPUh uderza w najemców (neocloudy, laboratoria), następnie w gwarancje wartości rezydualnej (spadek cen używanych GPU), a potem w SPV i banki. Prawdopodobna reakcja regulacyjna to wyższe wagi ryzyka lub limity koncentracji dla kredytów pod DC. Podniosłoby to koszt kapitału dla projektów bez najemcy investment grade.
-Źródło: [CASRAI (omówienie FSR)](https://casrai.org/news/federal-reserve-financial-stability-report-ai-november-2026), [Federal Reserve – Financial Stability Report](https://www.federalreserve.gov/publications/financial-stability-report.htm)
+#### Nvidia zaostrza kryteria backstopów: wymagany wiążący LOI lub podpisany kontrakt offtake (13–15.11)
+Nowe elementy względem poprzednich edycji (530 mld USD gwarancji brutto, 36 mld USD take-or-pay):
+- Według Origin Partners (cytat w FinanceFeeds) Nvidia od ok. 3 miesięcy wymaga przed udzieleniem gwarancji wiążącego LOI lub podpisanego kontraktu offtake. Wcześniej wystarczał niewiążący list.
+- Wsparcie wartości rezydualnej (residual value support) pokrywa do 25% wartości transakcji. Broadcom miał zaproponować wyższy udział.
+- Wstępne memoranda z Apollo, BlackRock i czterema innymi firmami (program „>500 mld USD”) nie przyniosły jeszcze żadnej transakcji, pierwsza możliwa w styczniu 2027.
+- Wersje OpenAI są sprzeczne. The Information: Kress sprzeciwiała się backstopowi 250 mld USD (ok. 8 GW), dotąd gwarantowano ok. 100 mld USD. Reuters: projekt w Ohio ścięty z 250 do 120 mld USD. CNBC: 105 mld USD (zgodnie z 8-K z sierpnia, z efektem od 2028). Żadne źródło nie potwierdza, że Kress jako p.o. CEO zmieniła istniejącą umowę.
+- Suma ekspozycji wg FinanceFeeds: 36 mld (neocloudy) + 20 mld (leasingi DC) + 105 mld (OpenAI Ohio) + do 125 mld (program kredytowy z Wall Street) = ok. 286 mld USD.
 
-#### CoreWeave: zabezpieczona pożyczka ≥4 mld USD pod kontrakty z Meta, cel ok. 7,5% wobec ok. 16% na obligacjach (13.11)
-Według Semafor i Bloomberga CoreWeave syndykuje (Morgan Stanley, MUFG) pożyczkę co najmniej 4 mld USD. Zabezpieczeniem są sprzęt obliczeniowy i kontrakty z Meta (rating AA). Docelowy koszt to ok. 7,5% all-in, podczas gdy rentowność niezabezpieczonych obligacji sięgała ok. 16%. Wstępny marketing przyjęto ciepło. Sprzedaż w transzach może ruszyć w przyszłym tygodniu. Kurs CRWV spadł 13.11 o 6,1% do 53,13 USD.
-**Analiza:** Rozjazd ok. 850 pb między długiem zabezpieczonym kontraktem a niezabezpieczonym pokazuje, że rynek wycenia ryzyko kredytowe najemcy, a nie operatora. Neocloud staje się w praktyce SPV przenoszącym kredyt hyperscalera. Skutki: (1) dług zabezpieczony podporządkowuje dotychczasowych obligatariuszy, więc spread niezabezpieczonych obligacji może dalej rosnąć; (2) moc bez kontraktu z najemcą IG jest praktycznie niefinansowalna; (3) koncentracja na Meta i Microsoft zwiększa ryzyko kaskady przy nieodnowieniu kontraktu, jak w przypadku Microsoft i Oracle oraz Microsoft i Nscale.
-Źródła: [Semafor](https://www.semafor.com/article/11/13/2026/coreweave-tunes-out-nvidia-noise-looks-to-raise-4b), [Motley Fool](https://www.fool.com/coverage/stock-market-today/2026/11/13/stock-market-today-nov-13-coreweave-falls-over-6-on-ai-cloud-selling-and-reported-usd4-billion-loan-talks/)
-
-#### „Jensen put”: 530 mld USD gwarancji i 279 mld USD zobowiązań zakupowych Nvidii bez założyciela
-SemiAnalysis zestawia dane z raportów Nvidii. Gwarancje pozabilansowe brutto wzrosły ze 184 do 530 mld USD w jednym kwartale (w tym 36 mld USD progów take-or-pay pod neocloudy). Zobowiązania zakupowe i pojemnościowe wzrosły ze 119 do 279 mld USD, głównie na pamięć. Do tego dochodzi 99 mld USD w portfelu udziałów. The Business Engineer dodaje, że Nvidia podpisała gwarancje części płatności za leasing i energię wdrożenia OpenAI w kampusie SB Energy (Ohio). W równoległej ofercie Anthropic dla dostawców (26 mld USD) Nvidia zobowiązała się kupić akcje za 10 mld USD.
-**Analiza:** Nvidia pełni funkcję prywatnego „banku centralnego” ekosystemu: sprzedaje GPU z pełną marżą, a potem gwarantuje przychód lub czynsz kupującego. Operatorzy bez ratingu IG pożyczają dzięki temu na warunkach IG. Ryzyko polega na tym, że menedżerski zarząd ograniczy nowe gwarancje. Wtedy mniejsze neocloudy tracą dostęp do taniego długu dokładnie wtedy, gdy Fed sygnalizuje koncentrację ryzyka. Odwrotny scenariusz: 279 mld USD zobowiązań na pamięć przy spadku popytu staje się nadwyżką zapasów (write-down) i presją na ceny HBM i DRAM w 2027–2028.
-Źródła: [SemiAnalysis](https://newsletter.semianalysis.com/p/nvidia-and-the-world-without-jensen), [The Business Engineer](https://businessengineer.ai/p/this-week-in-the-ai-supercycle-ai)
-
-## Newsletters summary
-
-#### SemiAnalysis: „Nvidia and the World Without Jensen” (12.11)
-Teza autorów: odejście Huanga wiąże się z przemytem GPU. Model akceleratorów SemiAnalysis i Departament Handlu szacują ponad 1,5 GW zastrzeżonych chipów Nvidii w Chinach. Odejście ma też usunąć głównego przeciwnika RASA przed głosowaniem w Senacie. Kluczowe dane:
-- HBM4 SK Hynix na 2027 r.: ok. 3,0–3,3 USD/Gb dla Nvidii wobec 3,7–4,1 USD/Gb dla AMD, Broadcom, Amazon i Google (szacunek SemiAnalysis).
-- Prognoza: w 2028 r. ponad 70% całej mocy obliczeniowej AI może być poza Nvidią, bo dostawcy przestaną ją priorytetyzować.
-- Brak następcy: ok. 60 bezpośrednich podwładnych Huanga. Wewnętrznie wymieniani są Ian Buck i Jonah Alben, a SemiAnalysis ocenia, że żaden z nich nie przejmie roli negocjatora łańcucha dostaw.
-- Sprawy przemytu: Supermicro (US v. Liaw, 2,5 mld USD serwerów, w tym 510 mln do Chin; proces 29.03.2027) oraz Keelung (130 serwerów B300, 74 dotarły do Chin; 9 oskarżonych, w tym menedżer Nvidia Taiwan).
-- Open source: kernele chińskich laboratoriów (DeepEP, DeepGEMM, MiniMax MSA, Moonshot FlashKDA) używane w SGLang i vLLM mogą przestać być publikowane.
-**Analiza:** Dla capacity planning najważniejsza jest prognoza poluzowania alokacji. Jeśli SK Hynix i TSMC przestaną priorytetyzować Nvidię, czas dostaw TPU, Trainium i MI4xx się skróci, a różnica cen HBM się zmniejszy. To podnosi realność floty wielodostawczej w 2027–2028. Ryzyko odwrotne: utrata optymalizacji z chińskich kerneli spowolni poprawę kosztu tokena na Blackwell w otwartych silnikach inferencji.
-Źródło: [SemiAnalysis](https://newsletter.semianalysis.com/p/nvidia-and-the-world-without-jensen)
-
-#### The Business Engineer: „AI Lost Its Central Banker” (14.11)
-Nowe elementy względem rejestru: 9.11 senatorowie Warren (D) i Banks (R) wspólnie wezwali do zaostrzenia kontroli chipów i zamknięcia kanałów obchodzenia restrykcji. To dowód na ponadpartyjny kurs wobec Chin. Nvidia gwarantuje część płatności za leasing i energię wdrożenia OpenAI w kampusie SB Energy (Ohio). W równoległej ofercie dla dostawców przy IPO Anthropic Nvidia kupuje akcje za 10 mld USD. OpenAI miało 6.11 pierwsze zamknięcie rundy na 11 mld USD (Reuters).
-**Analiza:** Finansowanie rozbudowy rozkłada się na więcej bilansów (laboratoria sprzedają udziały, hyperscalerzy emitują dług, dostawcy inwestują w klientów). Ekspozycja dotyczy jednak tych samych założeń popytowych, więc dywersyfikacja inwestorów nie dywersyfikuje ryzyka. Dla architektów: kontrakty compute zawierane z laboratoriami finansowanymi przez dostawców sprzętu mają skorelowane ryzyko kontrahenta.
-Źródło: [The Business Engineer](https://businessengineer.ai/p/this-week-in-the-ai-supercycle-ai)
-
-#### Own news (n8n, 14.11): cuBLAS FP64, cuPhoton, cuDLA, SGLang Consortium
-cuBLAS FP64 (Ozaki-II) opisano już 14.11. SGLang Consortium jest w sekcji AI-ML. Pozostałe dwie pozycje są niszowe: cuPhoton (interferometria radiowa czarnych dziur na GPU) oraz natywna inferencja DLA w Pythonie na Jetson AGX Orin przez cuDLA. Ta druga ma znaczenie dla edge: odciąża GPU i poprawia perf/W przy wielu równoległych sieciach, ale DLA obsługuje ograniczony zestaw warstw i reszta wraca na GPU.
-Źródło: [NVIDIA Technical Blog – cuDLA](https://developer.nvidia.com/blog/run-native-dla-inference-in-python-on-nvidia-jetson-agx-orin-using-cudla/)
+**Analiza:** Wymóg wiążącego offtake przed gwarancją odcina projekty spekulacyjne, czyli DC budowane pod niewiążące LOI. W praktyce koszt kapitału drugiej linii neocloudów rośnie niezależnie od nastrojów na NVDA, a ryzyko przesuwa się na banki i prywatne fundusze kredytowe bez „parasola” dostawcy. Limit RVS na poziomie 25% oznacza, że przy spadku wartości rezydualnej GPU szybszym niż w modelu amortyzacji (np. po wejściu Rubin) 75% straty zostaje u kredytodawcy. Broadcom oferujący większe pokrycie to sygnał, że finansowanie staje się narzędziem konkurencji ASIC kontra GPU. Punkt kontrolny: wyniki Nvidii Q3 FY27 (17.11) i aktualizacja linii 36 mld/20 mld w 10-Q.
+Źródła: [FinanceFeeds](https://financefeeds.com/nvidia-backstop-286-billion-colette-kress-openai-neoclouds/), [24/7 Wall St. (Yahoo Finance)](https://finance.yahoo.com/markets/stocks/articles/nvidia-ceo-colette-kress-seems-135655679.html), [CNBC](https://www.cnbc.com/2026/11/13/nvidia-jensen-huang-resignation-ai-financing.html)
 
 ## Implikacje praktyczne
-
-1. **Kontrakty compute powinny zakładać regulacyjny „kill switch”.** Reguła Commerce i RASA mogą unieważnić część popytu w chmurach poza USA. W umowach z neocloudami trzeba wymagać deklaracji struktury klientów (limit 51% Nvidii), klauzul o zmianie prawa i prawa do relokacji obciążeń. Przez 3–5 lat ryzyko eksportowe będzie stałym elementem SLA, nie zdarzeniem jednorazowym.
-2. **Stos inferencji powinien być przenośny między akceleratorami.** SGLang Consortium i prognoza ponad 70% mocy poza Nvidią w 2028 r. uzasadniają standaryzację na SGLang lub vLLM z backendami CUDA, ROCm i TPU zamiast silników jednego dostawcy. Trzeba utrzymywać testy regresji wydajności per backend, bo optymalizacje kerneli rozjadą się między platformami.
-3. **Ryzyko kredytowe najemcy jest ryzykiem dostawcy.** Pożyczka CoreWeave pod kontrakty Meta i dane Fed (ponad 2 bln USD take-or-pay) pokazują, że stabilność neocloudu zależy od ratingu jego największego klienta. Przy wyborze dostawcy trzeba analizować koncentrację klientów i strukturę długu (zabezpieczony vs niezabezpieczony), nie tylko cenę za GPUh.
-4. **Telemetria i polityki bezpieczeństwa przechodzą na DPU.** Scale-In (BlueField-4/DOCA) daje izolację odporną na kompromitację hosta kosztem lock-in. Warto projektować polityki w abstrakcji (np. OPA lub Cilium jako źródło prawdy), którą da się kompilować zarówno do eBPF, jak i do DPU, żeby nie wiązać modelu bezpieczeństwa z jednym krzemem.
-5. **Wolumen zgłoszeń CVE od narzędzi AI będzie rósł** (Cohere Cyber, FORGE). Proces zarządzania podatnościami trzeba przeskalować: automatyczna deduplikacja, ocena exploitowalności i SLA zależne od KEV, a nie od samego CVSS.
+1. **Płaszczyzny sterowania (RMM, orkiestratory GPU, panele inferencji) jako Tier-0.** N-able (HF2 obejście w 48 h) i GPUStack (KEV) pokazują, że hotfix dostawcy nie zamyka okna ekspozycji. W horyzoncie 3–5 lat: dostęp tylko przez ZTNA/mTLS, osobne konta break-glass, możliwość odtworzenia z IaC w ciągu godzin i runbook „wyłącz platformę zarządzania” bez paraliżu operacji.
+2. **Finansowanie compute jako ryzyko łańcucha dostaw.** Zaostrzenie backstopów Nvidii i 25% limit RVS oznaczają, że kontrakty z neocloudami drugiej linii niosą ryzyko kontrahenta (opóźnienia, niewybudowane moce). Kontrakty na GPU-h powinny mieć klauzule step-in i przenoszalności, a plan pojemności zakładać 20–30% zapasu u drugiego dostawcy.
+3. **Warstwa pamięci między HBM a flash staje się elementem projektu inferencji.** DRAM-over-fabric (SiliconDisk), CXL i offload KV cache zmieniają koszt na token przy długim kontekście. Warto zaprojektować abstrakcję KV store (LMCache/NIXL), żeby wymiana medium nie wymagała zmian w serwowaniu. Ryzyko: brak trwałości i lock-in u małych dostawców.
+4. **Routing w DC to powierzchnia ataku.** CVE w `bgpd` FRR przy architekturach BGP-to-host oznacza, że każdy węzeł K8s jest peerem routingu. Standard na 3–5 lat: ścisłe filtry i maximum-prefix na peeringach z hostami, graceful restart i BFD z sensownymi timerami, testy fuzzingowe stosu routingu w CI obrazów SONiC.
+5. **Dane HR/PII u dostawców SaaS.** Przypadek TSMC: bez szyfrowania z kluczem klienta i audytu po stronie dostawcy organizacja nie potrafi nawet wskazać wektora. Przy nowych kontraktach SaaS wymagać BYOK/HYOK oraz logów dostępu eksportowanych do własnego SIEM.
 
 ## Trend tygodnia
-
-Odejście Huanga zmienia ryzyko rynku AI z technologicznego na instytucjonalno-finansowe. Fed po raz pierwszy oficjalnie wycenił skalę zadłużenia i zobowiązań pozabilansowych związanych z AI: ponad 1,1 bln USD długu publicznego i ponad 2 bln USD take-or-pay. Te liczby wpisują się w obraz Nvidii jako gwaranta ekosystemu z 530 mld USD gwarancji. Jednocześnie rynek długu ostro rozróżnia ryzyko: kontrakt z hyperscalerem obniża koszt finansowania CoreWeave z ok. 16% do ok. 7,5%. Moc bez najemcy IG staje się więc trudna do sfinansowania, co uderza zwłaszcza w europejskie neocloudy. Polityka eksportowa USA się zaostrza (reguła Commerce, RASA, ponadpartyjny nacisk w Senacie) i zaczyna dotyczyć nie tylko sprzedaży chipów, ale też chmurowego dostępu do mocy. W odpowiedzi branża wzmacnia otwarte, wielodostawcze warstwy oprogramowania (SGLang Consortium), które ograniczają zależność od jednego dostawcy krzemu. Najbliższy tydzień skupia trzy testy: wynik Nvidii 17.11, wycenę i debiut Anthropic 18–19.11 oraz możliwą publikację reguły o zdalnym dostępie.
+Rynek infrastruktury AI przechodzi z fazy, w której dostawca GPU finansował popyt, do fazy, w której finansowanie wymaga twardych kontraktów offtake. Koszt kapitału zależy więc od jakości klienta końcowego, a nie od relacji z Nvidią. Zaostrzenie kryteriów zaczęło się przed zmianą CEO, a sprzeczne liczby o gwarancji dla OpenAI (250/120/105/100 mld USD) pokazują, jak słaba jest przejrzystość tej części bilansu. Równolegle płaszczyzny sterowania stają się głównym celem ataków: od RMM u MSP, przez orkiestratory GPU, po demony routingu w fabrikach DC. Exploitacja wyprzedza cykl poprawek w ciągu godzin. SC26 przesuwa uwagę z samych akceleratorów na warstwy pamięci i I/O (DRAM-over-fabric, CXL, emulacja FP64), bo to one ograniczają koszt inferencji przy długim kontekście. Wspólny mianownik: ryzyko przesuwa się z warstwy compute na warstwy pośrednie (finansowanie, zarządzanie, pamięć, routing), które dotąd traktowano jako commodity.
 
 ## To obserwować
-
-- **Nvidia Q3 FY2027 (17.11):** komentarz tymczasowego CEO do gwarancji pozabilansowych, zobowiązań zakupowych (279 mld USD) i alokacji. Każde ograniczenie nowych backstopów to sygnał dla Nscale i mniejszych neocloudów.
-- **Anthropic ANT (wycena 18.11, debiut 19.11):** cena względem widełek 70–78 USD i zachowanie kursu w pierwszych dniach.
-- **Reguła BIS o zdalnym dostępie i RASA w Senacie:** lista 7 krajów i to, czy reguła obejmie istniejące kontrakty.
-- **Pożyczka CoreWeave ≥4 mld USD:** finalny koszt (cel ok. 7,5%) i reakcja spreadów obligacji niezabezpieczonych 2032.
-- **SC26 (15–20.11) i lista TOP500:** systemy z emulacją FP64, Ultra Ethernet BoF (18.11) oraz pierwsze konkretne dane Scale-In/BlueField-4.
+- **Wyniki Nvidii Q3 FY27 (17.11, 14:00 PT):** linie backstopów (36 mld neocloudy, 20 mld leasingi DC), guidance Rubin, komentarz do polityki gwarancji pod p.o. CEO.
+- **N-able:** kolejny hotfix eliminujący łańcuch Axis i `setLDFileOwner` oraz ewentualne wpisy CVE do CISA KEV, a także liczba przejętych serwerów w skanach Huntback/Shadowserver.
+- **TOP500 (listopad 2026, SC26):** czy LineShine utrzyma 1. miejsce, ile systemów z emulacją FP64 (Ozaki-II) i jaki jest udział systemów Ethernet/UEC względem InfiniBand.
+- **Spready CDS CoreWeave i rentowności obligacji neocloudów** po wynikach Nvidii jako wskaźnik dostępu drugiej linii do długu.
+- **Wydania FRR i obrazów SONiC** z poprawką CVE-2026-120221 oraz ewentualne pojawienie się PoC.
