@@ -1,160 +1,98 @@
-# Raport Zbiorczy IT – 2026-11-22
+# Raport Zbiorczy IT – 2026-11-23
 
-**Okno przyrostowe:** od raportu z 2026-11-21 (weekend). Uwzględniono zdarzenia z 15–21.11, których nie było w rejestrze z ostatnich 7 dni. Sekcja „AI for networking” została pominięta, bo nie pojawiły się w niej nowe, zweryfikowane informacje.
+**Okno przyrostowe:** od raportu z 2026-11-22 (weekend 21–23.11). Uwzględniono zdarzenia z 20–23.11, których nie ma w rejestrze z ostatnich 7 dni. Sekcje „euro neocloud” i „AI for networking” pominięto, bo nie pojawiły się w nich nowe, zweryfikowane informacje.
 
 ## Raport technologiczny
 
-### Biznes
-
-#### Retelit (Włochy): sprzedaż 38 DC – oferta Vaultica (Apollo), w procesie Ardian, Macquarie i Rai Way (19.11)
-Według Bloomberga Vaultica, wspierana przez Apollo, złożyła ofertę na biznes DC Retelit. Wycena wynosi ok. 700–800 mln EUR. Ardian, Macquarie i Rai Way złożyły oferty niewiążące, a oferty wiążące mogą wpłynąć w grudniu. Właściciel, Asterion Industrial Partners, chce zmniejszyć zadłużenie i skupić Retelit na sieci światłowodowej. Portfel obejmuje 38 obiektów, głównie edge/regionalnych, dla operatorów telekomunikacyjnych, firm i chmur.
-
-**Znaczenie:** Rozdzielenie światłowodu i DC to kolejny przykład modelu, w którym fiber zostaje u operatora z infrastrukturą, a colo trafia do funduszy z niższym kosztem kapitału. Dla klientów colo we Włoszech zmiana właściciela zwykle oznacza przegląd cennika przy odnowieniu, presję na zagęszczenie mocy i możliwe zmiany zasad cross-connectów. Warto teraz sprawdzić klauzule change-of-control i indeksacji cen w umowach.
-
-Źródło: [Placera / Finwire (za Bloombergiem)](https://www.placera.se/telegram/apollo-stodda-vaultica-uppges-buda-pa-retelits-datacenterverksamhet-bn-20261119), [Private Equity Wire](https://www.privateequitywire.co.uk/retelit-weighs-potential-e700m-sale-of-data-centre-unit/)
-
 ### Technologia
 
-#### Rackspace Spot (managed Kubernetes): wyciek poświadczeń dał dostęp do Secrets klientów (17.11, przywrócenie 21.11)
-17.11 w godz. ok. 00:20–22:00 UTC atakujący, używając wycieku poświadczeń, działał w platformie Spot (współtworzonej z Platform9) jako uprawniony użytkownik części organizacji klientów. Mógł:
-- tworzyć pody,
-- czytać Kubernetes Secrets,
-- listować węzły i wolumeny.
+#### Kradzież promptów u dostawców inferencji: badanie canary Dragos, OpenRouter usuwa 3 dostawców i 125 endpointów z ZDR; incydenty Together AI i Phala (21–22.11)
+Dragos (z udziałem HD Moore'a) między lipcem a listopadem wysłał ok. 2 mln promptów z unikalnymi linkami i poświadczeniami-pułapkami (canary) przez routery i dostawców inferencji, a potem obserwował, kto ich używa. Wyniki:
+- Trzech nienazwanych dostawców inferencji było skompromitowanych przez miesiące i o tym nie wiedziało. Najwcześniejszy wyciek trwał od połowy lipca.
+- W największym przypadku (koniec października) skradziono każde żądanie z danego okna, także odrzucone przed uruchomieniem modelu. Ruch był więc kopiowany już w punkcie wejścia (gateway/LB), a nie w warstwie modelu.
+- Część skradzionych żądań miała flagę Zero Data Retention.
+- Atakujący testował klucze AWS w ciągu kilku godzin: listował S3, przeszukiwał Secrets Manager i Parameter Store, próbował tworzyć klucze API Bedrock i użytkowników IAM (dziesiątki tysięcy wywołań API). Do sprawdzania kluczy użył frameworka ARTEX (user-agenty `artex-agent`, `artex-judge-r121`).
+- Sprzedawcy na marketplace inferencji wystawiali tanie modele z włączonym logowaniem żądań. Jeden router przekazywał ruch do marketplace bez wiedzy klientów. Analiza ok. 2 000 ścieżek wykazała kilkaset niezidentyfikowanych systemów pośrednich i sprzedawcę doklejającego ok. 1 000 ukrytych tokenów do każdego promptu.
+- Modele jednego chińskiego laboratorium pobierały sekretne linki z ponad połowy promptów, w tym z ok. 2/3 oznaczonych jako ZDR lub „no data collection”. Ten sam scraper uruchamiał się także u amerykańskich hostów odsprzedających te modele.
 
-Rackspace dowiedział się o incydencie od klienta 18.11. Unieważnił tokeny i sesje, usunął obce pody i zrotował klucze. Konsola była niedostępna przez kilka dni, więc klienci nie mogli sami rotować poświadczeń. IoC:
-- adres 23.224.79.106 i zakres 23.224.0.0/15,
-- prefiksy obiektów `i1`, `glm-`, `probe`.
+OpenRouter usunął trzech dostawców (bez nazw), wycofał 125 endpointów z kwalifikacji ZDR i powiadomił klientów. Ujawnione incydenty:
+- **Phala:** przejęty serwer inferencji, żądania do DeepSeek V4 Flash 0731 od 21.10 00:00 do 8.11 05:35 UTC należy traktować jako ujawnione.
+- **Together AI (komunikat CEO 21.11):** agent AI do kodowania wcommitował do publicznego repozytorium GitHub poświadczenie do prywatnego repo Hugging Face z próbkami promptów testowych z czerwca i lipca (MiniMax M3, GLM-5.2, Kimi K2.6). Skaner sekretów cofnął commit, ale atakujący zdążył skopiować dane, a potem przetestował znalezione w nich poświadczenia, w tym 5 canary Dragos. Together wprowadził krótkotrwałe i zawężone poświadczenia, skan sekretów w każdym PR, ZDR domyślnie dla nowych kont i nowe zasady dla agentów kodujących.
+- **Novita:** błąd konfiguracji routingu przekazywał część żądań MiniMax do oficjalnego API MiniMax.
 
-**Znaczenie:** To typowy failure mode zarządzanego control plane: kompromitacja tożsamości po stronie dostawcy omija RBAC klienta, bo napastnik ma uprawnienia legalnego użytkownika. Odcięcie konsoli na czas sanityzacji blokuje rotację u klienta, czyli wydłuża okno ekspozycji. Wnioski:
-- Sekrety w etcd (nawet szyfrowane at-rest) są czytelne dla każdego z prawem `get secrets`. Lepszy jest zewnętrzny KMS/Vault z krótkim TTL i workload identity.
-- Rotację poświadczeń dla downstreamu (bazy danych, rejestry, Git, chmury) trzeba móc przeprowadzić bez konsoli dostawcy.
-- Należy przejrzeć logi downstreamu od 17.11.
+**Znaczenie:** ZDR to deklaracja kontraktowa, a nie kontrola techniczna. Jeśli ruch jest kopiowany na wejściu, flaga nie ma znaczenia. Przy łańcuchu router → reseller → host → laboratorium klient nie zna faktycznej ścieżki danych, więc ryzyko rośnie z każdym hopem. Wnioski:
+- Prompty agentów (kontekst repo, logi, zmienne środowiskowe) zawierają sekrety. Potrzebne są filtrowanie formatów kluczy na egress do LLM, poświadczenia krótkotrwałe (STS, workload identity) zamiast statycznych kluczy oraz własne canary w kontekstach agentów, których każde użycie oznacza incydent.
+- Dla danych wrażliwych: self-hosting (vLLM/SGLang) albo bezpośrednia umowa z dostawcą pierwszego poziomu z prawem audytu i jawnie zadeklarowaną ścieżką ruchu, bez marketplace i resellerów.
+- Przypadek Together to kolejny failure mode agentów kodujących: commit sekretu do publicznego repo. Pre-commit i push protection muszą obejmować też tokeny HF i klucze inferencji, a agent nie powinien mieć dostępu do długożyjących poświadczeń.
+- W SIEM warto dodać user-agenty ARTEX i alerty na `CreateUser` oraz tworzenie kluczy Bedrock z nietypowych ASN.
 
-Źródło: [BleepingComputer](https://www.bleepingcomputer.com/news/security/rackspace-spot-breach-let-hackers-access-customer-kubernetes-secrets/)
-
-#### Microsoft Entra Connect Health: błąd w API wykorzystany do odczytu metadanych tenantów (luka od 23.07, poprawka 19.11, powiadomienia 20–21.11)
-Błąd w API Entra Connect Health, wprowadzony 23.07 i wykryty przez Microsoft 9.11, pozwalał na nieautoryzowany odczyt metadanych tenantów. Ujawnione mogły zostać:
-- e-maile kontaktów technicznych i administratorów,
-- Tenant ID, domeny i region,
-- poziom licencji Entra i status synchronizacji katalogu z czasem ostatniego synca,
-- wygasły certyfikat rejestracji agentów.
-
-Microsoft twierdzi, że hasła, hashe, tokeny i ważne klucze nie wyciekły, a zmian konfiguracji nie było, choć luka teoretycznie pozwalała modyfikować ustawienia monitoringu. Microsoft nie podał liczby tenantów ani sprawcy. MSP dostają powiadomienia dla wielu tenantów naraz. Poprawka jest po stronie serwera, a klient nie musi nic aktualizować.
-
-**Znaczenie:** Same metadane wystarczają do precyzyjnego phishingu. Napastnik wie, kto jest adminem, które tenanty mają hybrydowy sync AD (a więc atakowalny serwer Entra Connect on-prem) i jaki mają poziom licencji, a więc czy działa Conditional Access lub PIM. Priorytety:
-- MFA odporne na phishing (FIDO2) dla ról uprzywilejowanych,
-- przegląd logów logowań kont wymienionych w powiadomieniu,
-- traktowanie serwera Entra Connect jak Tier 0.
-
-Problem trwał prawie 4 miesiące, zanim został wykryty. To argument za własnym monitoringiem anomalii w audycie Entra zamiast polegania na telemetrii dostawcy.
-
-Źródło: [BleepingComputer](https://www.bleepingcomputer.com/news/security/microsoft-entra-connect-health-flaw-exploited-to-steal-tenant-data/)
-
-#### AWS us-east-1: niemal 4 godziny awarii IAM Identity Center i 11 usług, status page z opóźnieniem 93 minut (15.11)
-15.11 od 3:05 PT AWS notował błędy w us-east-1, przede wszystkim w IAM Identity Center (logowanie do kont): problemy z uwierzytelnianiem, łącznością i rejestracją. Pierwszy wpis na publicznej stronie statusu pojawił się ok. 93 minuty po początku błędów. Pełne przywrócenie nastąpiło o 6:53 PT, łącznie ok. 3 h 48 min. AWS nie podał root cause. Incydent opisał Corey Quinn 21.11.
-
-**Znaczenie:** IAM Identity Center jest zarządzany z jednego home regionu, a jego awaria odcina ludzki dostęp do wszystkich kont organizacji niezależnie od regionu workloadów. Wymagania:
-- kont break-glass z poświadczeniami IAM poza Identity Center (z MFA sprzętowym, przechowywanych offline),
-- alertowania opartego na własnych syntetycznych testach logowania, a nie na AWS Health.
-
-Przy ponad 90 minutach opóźnienia status page'a SLO wykrywania incydentu u dostawcy jest zawsze gorsze niż własny probe.
-
-Źródło: [The Register (Corey Quinn)](https://www.theregister.com/columnists/2026/11/21/aws-got-hit-by-an-outage-too-heres-why-you-didnt-hear-about-it/5311511)
+Źródło: [The Hacker News](https://thehackernews.com/2026/11/openrouter-drops-3-providers-after.html), [Unite.ai](https://www.unite.ai/openrouter-cuts-three-providers-after-ai-prompt-exposure-findings/), [Fox News – relacja z komunikatu Together AI](https://www.foxnews.com/live-news/ai-news-markets-correction-11-22-26)
 
 ## Raport AI-ML
 
 ### Biznes
 
-#### BIS zatwierdził 879 868 akceleratorów H200/MI325X dla Chin z 3,44 mln wnioskowanych; Alibaba i Tencent na liście firm wojskowych (ujawnienie 19.11)
-Przewodniczący House Foreign Affairs Committee Brian Mast ujawnił dane licencyjne Commerce, korzystając z uprawnień ECRA. Do 11.05.2026 r. w 21 wnioskach zatwierdzono 879 868 układów Nvidia H200 i AMD MI325X z ok. 3,44 mln wnioskowanych. Przydziały:
-- Tencent: 150 tys.,
-- Alibaba: 75 tys.,
-- Baidu: 43 tys.,
-- BYD: 4 tys.
+#### Dell, HPE, Lenovo i Supermicro żądają podwyżek do 45% na serwery AI po podpisaniu umów (FT, 22.11)
+Według Financial Times (relacje Digitimes 23.11 i innych) czterej główni dostawcy serwerów żądają od klientów dopłat sięgających 45% miesiące po podpisaniu umów, gdy sprzęt zbliża się do wysyłki. 45% to górna granica, nie średnia. Według części relacji serwery GPU podrożały po podpisaniu umów o ok. 20–30%, a niektóre systemy CPU ponad trzykrotnie, bo pamięć stanowi w nich większą część BOM. JPMorgan szacuje wzrost cen pamięci o ponad 400% od początku 2024 r. HPE zmienił warunki handlowe tak, by móc zmieniać cenę między złożeniem zamówienia a wysyłką (Neri nazywa to „agile pricing posture”). Precedens sporu: XTX (Finlandia) pozwał Dell w irlandzkim High Court o ok. 62–70 mln USD dopłaty do kontraktu na 1 680 serwerów (ok. 549 mln USD). XTX twierdzi, że cena była stała, a sprawę odroczono do grudnia. Dostawcy nie skomentowali doniesień.
 
-Odrzucono duże wnioski Nvidii dla Alibaby (610 tys.) i ByteDance (508 tys.) oraz 75 tys. MI325X dla UCloud. Wszystkie wnioski oceniały ryzyko dywersji jako „niskie”. Część zatwierdzonych zamówień nie została wysłana, bo Pekin blokował import. Nvidia deklaruje, że wstrzymała wysyłki H200 do Chin. Alibaba (Eddie Wu) zapowiada, że cel 20 GW mocy DC może zostać obniżony po nowej regule o zdalnym dostępie.
+**Analiza:**
+- **Ryzyko kontraktowe:** cena serwera przestaje być stała między PO a dostawą. Kontrakty powinny mieć twardy price lock z limitem indeksacji powiązanym z publicznym indeksem DRAM i HBM, prawo odstąpienia bez kary przy przekroczeniu progu oraz escrow spornej kwoty, jak w modelu XTX. Bez tego dostawca może opóźniać wysyłkę do czasu akceptacji podwyżki.
+- **Capacity planning:** przy budżecie stałym podwyżka o 20–30% oznacza o 17–23% mniej węzłów. W TCO na 2027 r. trzeba uwzględnić scenariusz cenowy pamięci, a nie tylko GPU. Systemy CPU-heavy (pamięć dla agentów, KV-cache offload, bazy wektorowe) są bardziej wrażliwe niż węzły GPU.
+- **Kto jest najbardziej narażony:** hyperscalerzy przeniosą to w capex, ale neocloudy z kontraktami offtake o stałej cenie za GPU-h i finansowaniem pod te kontrakty (DDTL) tracą marżę albo muszą renegocjować z klientem. To kolejny element nożyc: rosnący koszt wejścia przy spadającej wycenie rynkowej.
+- **Vendor lock-in:** odejście od jednego OEM (ODM direct, np. Foxconn/Quanta/Wiwynn, lub zakup przez chmurę) zmniejsza ekspozycję na jednostronne repricing, ale przenosi na kupującego integrację i wsparcie.
 
-**Analiza:** Licencje zatwierdzone, ale niezrealizowane to martwy backlog. Nie należy go wliczać do popytu 2027. Obniżenie celu 20 GW przez Alibabę to bezpośredni sygnał spadku capex jednego z największych nabywców poza USA. Uderzy to w łańcuch dostaw z Azji (serwery, HBM, optyka). Ujawnienie listy z oceną ryzyka „niskie” wzmacnia presję na zaostrzenie procesu licencyjnego (KYC, audyty on-site). Dla neocloudów spoza USA z chińskimi klientami rośnie ryzyko licencji wydanej i potem cofniętej, co oznacza stranded capacity bez możliwości szybkiej realokacji kontraktu.
-
-Źródło: [The Register](https://www.theregister.com/legal/2026/11/20/us-let-nvidia-and-amd-sell-bucketloads-of-chips-to-military-linked-chinese-companies/5311200), [The Standard HK (za Reuters)](https://www.thestandard.com.hk/world/article/349075/US-signed-off-on-sales-of-nearly-900000-AI-chips-to-China-in-six-months-committee-says)
-
-### Technologia
-
-#### E4 Computer Engineering i Openchip: MoU w sprawie europejskich systemów inferencyjnych na akceleratorach RISC-V BERNIA (SC26, 20.11)
-Włoski integrator HPC E4 i barceloński fabless Openchip (ok. 300 osób) podpisały niewiążące MoU. Chcą zbadać wspólną rodzinę energooszczędnych systemów do inferencji na dużą skalę i HPC na akceleratorach BERNIA (RISC-V). Docelowo systemy mają trafić do programów AI Factories i AI Gigafactories UE. Kolejny krok to badanie rynku, potem ewentualnie definitywna umowa, projekt i walidacja. Nie podano dat, wydajności, poboru mocy ani wolumenów. Openchip nie ma jeszcze układu komercyjnego (dostępność zapowiadana na 2027 r.).
-
-**Analiza:** To sygnał polityczny pod kryteria „suwerenności” w przetargach EuroHPC, a nie realna alternatywa capacity w horyzoncie 2027–2028. Brak dojrzałego stosu (kompilatory, kernele attention i MoE, integracja z vLLM/SGLang) oznacza, że nawet przy dobrym perf/W koszt portowania i niska utylizacja zjedzą przewagę TCO. W planowaniu warto to traktować jako opcję na niszowe obciążenia inferencyjne w sektorze publicznym. Platformę bazową nadal wyznaczają Nvidia i AMD.
-
-Źródło: [HPCwire](https://www.hpcwire.com/off-the-wire/e4-computer-engineering-and-openchip-sign-mou-to-explore-eu-sovereign-ai-compute-platforms/)
-
-## euro neocloud
-
-### Nebius
-
-#### Trzecia umowa z Mega DC (Mega Or): kolejne 134 MW IT w Izraelu (20.11)
-**Fakty:**
-- Mega DC, spółka zależna Mega Or, podpisała z podmiotem zależnym Nebius umowę na 134 MW mocy IT w dwóch lokalizacjach. Pierwsza to druga faza kampusu Beit Shemesh (maks. 135 MW IT, w budowie), druga to planowana lokalizacja w Masmiya (rada regionalna Yoav).
-- Nie ujawniono okresu najmu ani wartości umowy.
-- Wcześniejsza umowa ze stycznia 2026 r. obejmowała 80 MW na 5 lat z opcją przedłużenia, a koszt budowy wyceniono na ok. 880 mln USD.
-- Według niemieckiego serwisu giełdowego w Masmiya brakuje jeszcze zgody na przyłączenie do sieci.
-
-**Ocena analityczna:**
-- *Wykryte sygnały ostrzegawcze:*
-  - Nebius dokłada leasing zewnętrznych obiektów, a w III kw. obniżył prognozę przychodów 2026 r. właśnie z powodu opóźnień w lokalizacjach, których nie kontroluje.
-  - Masmiya bez potwierdzonego przyłącza powtarza ten sam wzorzec ryzyka.
-  - Koncentracja ok. 330 MW w jednym kraju i u jednego dewelopera zwiększa ekspozycję na ryzyko geopolityczne i ryzyko kontrahenta.
-  - Przy rentownościach długu neocloudów na poziomie 14–16% stałe zobowiązania leasingowe pogarszają dźwignię operacyjną, jeśli najem GPU się nie zapełni.
-- *Ocena ryzyka:* **Średnie.** Kontrakty z Microsoft i Meta oraz rosnące ceny najmu GPU wspierają popyt, ale wykonanie zależy od harmonogramu przyłączeń u stron trzecich.
-- *Linki:* [Globes (umowa Mega Or)](https://en.globes.co.il/en/article-1001531296), [DCD](https://www.datacenterdynamics.com/en/news/nebius-expands-israel-data-center-lease-with-mega-or-by-134mw/), [Börse Global (przyłącze Masmiya)](https://www.boerse-global.de/nebius-aktie-netzanschluss-auf-eis/844194)
+Źródło: [Digitimes](https://www.digitimes.com/news/a20261123VL206/ai-server-dell-price-hpe-lenovo.html), [Startup Fortune (za FT)](https://startupfortune.com/dell-hpe-lenovo-and-supermicro-raise-ai-server-prices-up-to-45-after-signing/), [Irish Times – XTX vs Dell](https://www.irishtimes.com/crime-law/courts/2026/06/15/finnish-company-sues-dell-over-70m-price-increase-for-data-centre-servers/)
 
 ## Ryzyka rynku AI/GPU
 
-#### Senat USA uchwalił BAAJA 62–33: DC ≥20 MW mają pokrywać koszty sieci, ok. 55 mld USD w 10 lat (19.11)
-Senat przyjął Bipartisan American Affordability and Jobs Act. Ustawa:
-- wymaga, by DC i obiekty high-density o mocy ≥20 MW pokrywały dodatkowe koszty wytwarzania, magazynowania i sieci, które powodują;
-- zleca FERC ustanowienie ochrony odbiorców.
+#### Apollo i Goldman wyceniły ok. 44 mld USD obligacji pod leasing GPU Vera Rubin dla SpaceX – największe finansowanie GPU w historii (20.11)
+20.11, w dniu kapitulacji rynku, Apollo i Goldman Sachs (sole structuring agent) wyceniły ok. 44 mld USD obligacji senioralnych i podporządkowanych na zakup GPU Nvidia Vera Rubin i powiązanego sprzętu dla naziemnej infrastruktury compute SpaceX. Emisja była nadsubskrybowana i zwiększona. Inwestorzy kotwiczący: BlackRock, Goldman Sachs Asset Management i rachunki doradzane przez KKR. Struktura (8-K SpaceX z 26.10):
+- podmiot zarządzany przez Apollo kupuje sprzęt i leasinguje go SpaceX w modelu master finance lease,
+- łączne płatności kapitałowe ok. 40 mld USD,
+- harmonogramy po ok. 5–5,25 roku, czynsz kwartalny z góry, ok. 1/20 kosztu transzy plus stała stopa,
+- start po dostawie sprzętu w I połowie 2027 r.
 
-Według Grid Strategies (dane komisji energii Senatu) DC zapłacą ok. 55 mld USD za przesył w 10 lat, ok. 35 mld USD więcej niż obecnie. Ustawa przyspiesza też procedury pozwoleń (NEPA, CWA, ESA) dla elektrowni i linii przesyłowych. Teraz trafia do Izby Reprezentantów, która w 2025 r. przyjęła węższą wersję. Trump zapowiada podpis. Od stycznia Kongres będą kontrolować Demokraci, część z nich chce bardziej restrykcyjnej wersji.
+Zawarcie leasingu podlega warunkom zamknięcia i żaden dokument nie potwierdza jeszcze podpisania. Podział transz z jednego źródła (CNA, niepotwierdzony): ok. 25,2 mld USD senior secured A3 do 2033 z kuponem ok. 8,26%, ok. 4,4 mld USD A2 do 2031 (7,66%), ok. 2,6 mld USD klasy B (8,36%).
 
 **Analiza:**
-- *Infrastruktura i energia:* koszt przyłączenia staje się jawną pozycją capex projektu, a nie ukrytą subsydią taryfową. Przy ok. 3,5 mld USD rocznie, rozłożonych na ok. 30–50 GW nowych przyłączeń, daje to rzędu 70–120 USD/kW rocznie, czyli kilka procent TCO mocy IT. Największy wpływ dotknie projektów w regionach z dużymi kosztami rozbudowy przesyłu (PJM, ERCOT).
-- *Finanse:* dla deweloperów finansowanych długiem pod przedsprzedaż mocy (neocloudy, BTS dla hyperscalerów) wyższy upfront capex przy zamkniętym rynku obligacji przesuwa projekty w czasie albo wymusza renegocjację stawek najmu.
-- *Strona pozytywna:* szybsze pozwolenia skracają czas od wniosku do przyłączenia, co może zmniejszyć ryzyko stranded GPU.
+- **Rynek otwarty, ale drogi.** Kredyt pod GPU jest dostępny dla kredytobiorcy z silnym bilansem. Przy kuponie ok. 8,3% dla transzy senior secured koszt długu znacznie przekracza spready IG hyperscalerów. Rynek wycenia ryzyko wartości rezydualnej GPU, a nie tylko ryzyko kredytowe najemcy.
+- **Niedopasowanie terminów.** Amortyzacja w ok. 5 lat przy cyklu architektury Nvidii ok. 12–18 miesięcy oznacza, że na koniec leasingu zabezpieczenie będzie 3–4 generacje za czołówką. Pokrycie długu opiera się na czynszu, nie na odsprzedaży sprzętu.
+- **Koncentracja popytu.** Ok. połowa kwartalnych wydatków Anthropic na compute trafia do SpaceX (rejestr 20.11). Ten dług pośrednio finansuje więc capacity dla jednego głównego najemcy. Spadek kursu ANT i zobowiązania wypowiadalne z S-1 (ok. 186 mld USD) to ryzyko łańcuchowe.
+- **Koszt pieniądza rośnie.** Rynek wycenia ok. 94% prawdopodobieństwa podwyżki Fed o 25 pb na posiedzeniu 8–9.12 (tracker OIS na 23.11), a rentowność 10-latki była ok. 4,95% (10.11). Każde refinansowanie DDTL neocloudów w 2027 r. odbędzie się drożej. Kontrast: emisja SpaceX przeszła, a w tym samym tygodniu QTS ograniczył emisję, a banki zbywały ekspozycje DC (rejestr 19–20.11). Rynek się bifurkuje: kapitał trafia do kredytobiorców z bilansem, a nie do neocloudów z jednym klientem.
 
-Netto: wyższy koszt, ale mniej niepewności co do terminu. Do monitorowania, czy FERC dopuści rozliczenie kosztów w taryfie przez umowy typu „large load tariff”, czy wymusi płatności z góry.
-
-Źródło: [Yahoo News / HuffPost](https://www.yahoo.com/news/politics/articles/senate-votes-ai-data-centers-160341239.html), [The Hill](https://thehill.com/homenews/senate/6229829-senate-passes-permitting-reform/), [DCD](https://www.datacenterdynamics.com/en/news/us-senate-passes-bill-requiring-data-centers-to-pay-more-for-grid-infrastructure/)
+Źródło: [Reuters via Investing.com](https://www.investing.com/news/stock-market-news/apollo-goldman-lead-44-billion-spacex-gpu-debt-financing-5042346), [Ultrathink (analiza 8-K i transz)](https://ultrathink.ai/news/apollo-goldman-price-44-billion-spacex-gpu-notes), [Rate Probability (OIS)](https://rateprobability.com/fed), [CNBC](https://www.cnbc.com/2026/11/10/market-spooked-because-now-the-fed-may-need-a-supersized-hike-in-december.html)
 
 ## Newsletters summary
 
-#### The Business Engineer: rekordowy rozjazd między „zegarem fizycznym” (+4) a „zegarem finansowym” (−5); HBM sprzedane na lata naprzód (21.11)
-Autor prowadzi cztery wskaźniki cyklu AI: infrastruktura fizyczna +4, finanse −5, efektywność +4, adopcja +2. Różnica 9 punktów między stroną fizyczną a finansową jest najwyższa w historii pomiarów. Nowe elementy względem rejestru:
-- trzej producenci HBM poinformowali klientów, że znaczna część mocy jest sprzedana z wyprzedzeniem (według autora „do 2029”), a mimo to ich kursy spadły;
-- według wyliczeń autora z IPO Anthropic i emisji dla dostawców wpłynęło łącznie ok. 119,5 mld USD;
-- banki zaostrzają warunki kredytów na DC.
+#### „The Persistent Agent”: agenci działający w tle stają się kategorią obciążenia; SemiAnalysis – 45% własnych wydatków na AI (The Business Engineer, 22.11)
+Przegląd zmiany od czatu do agentów trwałych, którzy budzą się sami, mają pamięć i działają w oparciu o cel. Produkty z ostatnich 10 tygodni: Meta Muse, OpenAI Dots, Perplexity „Teammates”, a LangChain pozyskał 300 mln USD na infrastrukturę dla takich agentów. Według Dylana Patela (SemiAnalysis, 11.11) agenci trwali to 45% wydatków firmy na AI, wobec zera na początku roku. Harrison Chase (webinar LangChain 20.11) wskazuje cztery właściwości: cel, harmonogram wybudzeń, pamięć i uprawnienia. Test Arrington Capital to pięć pytań: co agent obserwuje, co go wybudza, jaki stan trzyma, co może zrobić bez pytania i jak ocenia ukończenie zadania. Wątek prymitywów runtime'u (event inbox, trwałe timery) jest w rejestrze z 17.11, więc tutaj nowe są dane popytowe i mapa rynku.
 
-Teza autora: ryzyko przechodzi na akcjonariuszy, a nie na dostawców komponentów.
+**Analiza:** Dla infrastruktury agent trwały ma inny profil obciążenia niż czat:
+- **Ruch:** to nie interaktywny ruch z pikami w godzinach pracy, lecz ciągłe, zdarzeniowe wywołania o długim horyzoncie. Pozwala to na lepszą utylizację (batching, off-peak), ale wymaga trwałego stanu: pamięci epizodycznej, checkpointów i kolejek zdarzeń z gwarancją dostarczenia.
+- **Koszt:** dominuje prefill długiego kontekstu przy każdym wybudzeniu, więc rośnie znaczenie współdzielonego i rozproszonego KV cache (np. LMCache/Valkey, CXL-pool) oraz prompt cachingu.
+- **Failure modes:** pętle wybudzeń bez warunku stopu (niekontrolowany koszt), dryf pamięci i eskalacja uprawnień w czasie. Konieczne są budżety tokenów per agent, circuit breakery i przegląd uprawnień, jak dla kont serwisowych.
+- Incydent Together AI (sekcja 1) pokazuje, że agent z dostępem do repo i poświadczeń to nowa klasa ryzyka wycieku.
 
-**Analiza:** Wyprzedanie HBM na lata oznacza, że ceny i wolumeny pamięci są zablokowane po stronie podaży. Spadek popytu nie przełoży się szybko na tańsze HBM, ale na kary za take-or-pay lub renegocjacje. Dla capacity planningu wynika z tego, że HBM, a nie wafle logiki, pozostaje twardym limitem dostaw akceleratorów w 2027–2028. Nabywcy, którzy nie mają slotów w alokacjach Nvidii lub AMD, nie kupią mocy nawet przy spadku cen GPU. Rozjazd fizyka–finanse to klasyczny sygnał późnej fazy cyklu, w której moce są zakontraktowane przy kosztach kapitału, których rynek już nie akceptuje.
+Udział 45% to deklaracja jednej firmy, a nie dane rynkowe.
 
-Źródło: [The Business Engineer](https://businessengineer.ai/p/this-week-in-the-ai-supercycle-a)
+Źródło: [businessengineer.ai](https://businessengineer.ai/p/the-persistent-agent)
 
 ## Implikacje praktyczne
 
-1. **Tożsamość dostawcy jako wektor ataku na Kubernetes i chmurę.** Rackspace Spot i Entra Connect Health pokazują, że kompromitacja po stronie dostawcy omija kontrole klienta. Decyzja na 3–5 lat: sekrety poza etcd (zewnętrzny KMS/Vault, workload identity, krótki TTL) oraz procedura rotacji niezależna od konsoli dostawcy. Ryzyko: dłuższe okno ekspozycji, gdy dostawca odcina panel na czas sanityzacji.
-2. **Break-glass i własna detekcja awarii hyperscalera.** Awaria IAM Identity Center w us-east-1 i ponad 90 minut opóźnienia status page'a wymagają kont awaryjnych poza federacją SSO oraz syntetycznych testów logowania i API. Bez tego RTO zależy od komunikacji dostawcy.
-3. **Koszt przyłączenia energii jako jawna pozycja TCO DC w USA.** BAAJA (jeśli przejdzie w Izbie) przenosi ok. 55 mld USD kosztów przesyłu na DC ≥20 MW. W modelach colo, BTS i leasingu GPU trzeba zakładać wzrost stawek lub opłaty przyłączeniowe pass-through. W wyborze lokalizacji większą wagę zyskują regiony z istniejącą rezerwą przesyłu.
-4. **Ryzyko regulacyjne kontraktów z klientami z Chin.** Ujawnienie licencji BIS i reguła o zdalnym dostępie zwiększają prawdopodobieństwo cofnięcia lub zaostrzenia licencji. Dla dostawców mocy oznacza to klauzule wyjścia i realokacji w kontraktach. Dla odbiorców: due diligence struktury klientów u neocloudu, bo licencja cofnięta sąsiadowi może zmienić finanse operatora.
-5. **Suwerenne akceleratory UE jako opcja, nie plan bazowy.** MoU w rodzaju E4–Openchip warto śledzić pod przetargi publiczne, ale do 2028 r. platformę bazową wyznaczają Nvidia i AMD z dojrzałym stosem inferencyjnym. Przenośność warstwy serwującej (vLLM/SGLang, OpenAI-compatible API) ogranicza koszt ewentualnej migracji.
+1. **Kontrakty sprzętowe z twardym price lockiem.** Wobec repricingu serwerów do 45% po podpisaniu każde PO na 2027 r. powinno mieć limit indeksacji powiązany z indeksem DRAM/HBM, prawo odstąpienia i escrow spornej kwoty. W TCO na 3–5 lat trzeba modelować pamięć jako główną zmienną kosztową, także dla serwerów CPU (agenci, bazy wektorowe, KV offload).
+2. **Inferencja przez strony trzecie jako kanał wycieku.** ZDR deklarowane przez routery i resellerów nie jest kontrolą techniczną. Dla danych wrażliwych: self-hosting albo jeden dostawca pierwszego poziomu z audytem ścieżki ruchu, DLP na egress do LLM, krótkotrwałe poświadczenia w kontekstach agentów i canary jako stały mechanizm detekcji.
+3. **Koszt kapitału jako ograniczenie capacity.** Kupony ok. 8% dla zabezpieczonego długu pod GPU i oczekiwana podwyżka Fed w grudniu oznaczają, że finansowanie leasingowe GPU w horyzoncie 3–5 lat będzie dostępne głównie dla kredytobiorców z silnym bilansem. Przy wyborze neocloudu jako dostawcy trzeba ocenić strukturę jego długu i terminy refinansowania, a nie tylko cenę GPU-h.
+4. **Ryzyko wartości rezydualnej.** Leasingi 5-letnie na sprzęt z 12–18-miesięcznym cyklem generacji wymagają planu drugiego życia dla GPU (inferencja, kaskadowanie do tańszych tierów). Własne klastry warto amortyzować w 3–4 lata, a nie 6.
+5. **Agenci trwali jako nowa klasa obciążenia.** Planując capacity na 2027–2029 r., trzeba uwzględnić ciągłe obciążenie tła (prefill długiego kontekstu, trwały stan, kolejki zdarzeń) i zarządzać nim jak kontami serwisowymi: budżety, circuit breakery, okresowy przegląd uprawnień.
 
 ## Trend tygodnia
 
-Weekend potwierdza, że ograniczeniem infrastruktury AI coraz częściej są polityka i kapitał, a nie krzem. Senat USA przerzuca koszty sieci na duże DC, a Kongres ujawnia, jak licencjonowano eksport akceleratorów do Chin. Obie decyzje zmieniają ekonomikę projektów, nie zmieniając ich technologii. Alibaba sygnalizuje możliwe obniżenie celu 20 GW, co jest pierwszym wyraźnym sygnałem cięcia capex dużego nabywcy spoza USA. Jednocześnie HBM pozostaje wyprzedane na lata, więc podaż jest sztywna, a ryzyko spadku popytu przenosi się na bilanse kupujących i operatorów. Neocloudy, jak Nebius w Izraelu, dalej dokładają moc w leasingu u stron trzecich, choć opóźnienia przyłączeń już raz kosztowały je obniżkę prognozy. W warstwie operacyjnej rośnie liczba incydentów, w których źródłem jest tożsamość lub control plane dostawcy (Rackspace Spot, Entra Connect Health, IAM Identity Center). To przesuwa ciężar odporności z „wielu regionów” na „niezależność od płaszczyzny zarządzania dostawcy”. Kierunek na najbliższe kwartały to droższa energia i kapitał, bardziej uregulowany eksport oraz architektury projektowane pod awarię dostawcy, a nie tylko sprzętu.
+Po kapitulacji rynku 20.11 rynek kapitałowy wyraźnie rozdziela kredytobiorców: SpaceX zamyka rekordowe 44 mld USD długu pod GPU, a w tym samym tygodniu banki pozbywają się ekspozycji DC, a neocloudy z jednym klientem tracą dostęp do finansowania. Jednocześnie koszt wejścia rośnie zamiast spadać: OEM-y przenoszą wzrost cen pamięci na podpisane kontrakty, a Fed wycenia kolejną podwyżkę. To ściska marżę każdego operatora, który sprzedał GPU-h po stałej cenie i finansuje się długiem. Fizyczny niedobór (pamięć, PCB) i finansowa ostrożność działają więc w tym samym kierunku: mniej, ale droższej mocy, skoncentrowanej u graczy z bilansem. Równolegle dojrzewa warstwa aplikacyjna. Agenci trwali stają się realną pozycją w budżetach, a to generuje stałe obciążenie inferencyjne niezależne od nastrojów giełdowych. Ta sama zmiana poszerza powierzchnię ataku: łańcuch dostaw inferencji (routery, resellerzy, hosty) okazał się nieszczelny, a agenci kodujący sami wyciekają poświadczenia. W najbliższych kwartałach przewagę zyskają organizacje, które kontrolują jednocześnie koszt kapitału, kontrakty sprzętowe i ścieżkę danych do modeli.
 
 ## To obserwować
 
-1. **Ścieżka BAAJA w Izbie Reprezentantów i ewentualne rulemaking FERC** (próg 20 MW, płatności z góry czy rozliczenie w taryfie). Kluczowe jest, czy ustawa przejdzie przed zmianą większości w styczniu.
-2. **Alibaba i Tencent: zmiany celów capex i mocy DC w kolejnych komunikatach** (cel 20 GW) oraz ewentualne cofnięcia licencji BIS po ujawnieniu danych przez Masta.
-3. **Nebius: status przyłącza w Masmiya i harmonogram Beit Shemesh II**, a także czy w IV kw. pojawią się kolejne korekty prognozy z powodu lokalizacji stron trzecich.
-4. **Rackspace / Platform9: raport poincydentalny Spot** (wektor wycieku poświadczeń, liczba klientów) oraz Microsoft: liczba tenantów dotkniętych luką Entra Connect Health.
-5. **Kontraktowe ceny HBM i DRAM na 2027 r. oraz alokacje HBM4/HBM4E** jako wskaźnik, czy wyprzedana podaż przechodzi w renegocjacje take-or-pay.
+- **Decyzja FOMC 8–9.12** (25 pb czy 50 pb) i jej wpływ na spready obligacji DC/ABS oraz kursy obligacji CoreWeave.
+- **Repricing serwerów:** czy Dell/HPE potwierdzą podwyżki w komentarzach kwartalnych (Dell raportuje pod koniec listopada) oraz rozstrzygnięcie XTX vs Dell w irlandzkim Commercial Court (grudzień).
+- **Lista dostawców inferencji usuniętych przez OpenRouter** i ewentualne ujawnienie nazw przez Dragos; zmiany w definicjach ZDR u routerów i resellerów.
+- **Zamknięcie leasingu SpaceX/Apollo** (8-K) oraz harmonogram dostaw Vera Rubin w I połowie 2027 r. jako wskaźnik realnych wolumenów Rubin.
+- **AWS re:Invent (29.11–3.12):** ceny instancji GPU i Trainium, ewentualne podwyżki za pamięć i storage.
