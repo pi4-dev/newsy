@@ -13,7 +13,7 @@ CrowdStrike ogłosił przejęcie Zscalera w transakcji wyłącznie akcyjnej. Don
 - zamknięcie planowane w II połowie FY2028 CrowdStrike, po zgodzie akcjonariuszy ZS i regulatorów,
 - Jay Chaudhry dalej kieruje biznesem Zscaler i wchodzi do rady CrowdStrike.
 
-Uzasadnienie: połączenie telemetrii endpointu (Falcon) z zero-trust/SSE (ZIA/ZPA), jeden kontrakt i dostęp do ok. 8 000 klientów Zscalera, którzy nie kupują od CrowdStrike. Kurz: „sieć łączyła ludzi z miejscami, teraz łączy agentów z danymi”. W dniu ogłoszenia kurs CRWD spadał o 8–9%, a ZS rósł o 13–18%. To trzecia transakcja CrowdStrike w listopadzie (po Fiddler AI i Dreadnode).
+Uzasadnienie: połączenie telemetrii endpointu (Falcon) z zero-trust/SSE (ZIA/ZPA), jeden kontrakt i dostęp do ok. 8 000 klientów Zscalera, którzy nie kupują od CrowdStrike. Kurtz: „sieć łączyła ludzi z miejscami, teraz łączy agentów z danymi”. W dniu ogłoszenia kurs CRWD spadał o 8–9%, a ZS rósł o 13–18%. To trzecia transakcja CrowdStrike w listopadzie (po Fiddler AI i Dreadnode).
 
 **Znaczenie:**
 - **Mechanizm wartości:** korelacja procesu na hoście z sesją sieciową w jednym grafie zdarzeń. Pozwala na szybsze wykrywanie lateral movement i ruchu agentów AI do SaaS bez łączenia dwóch SIEM-ów. Stały parytet przy spadku CRWD obniża jednak efektywną cenę, a to zwiększa ryzyko sprzeciwu akcjonariuszy ZS lub kontroferty.
