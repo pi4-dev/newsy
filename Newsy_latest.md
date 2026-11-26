@@ -181,5 +181,5 @@ Rynek infrastruktury AI przeszedł w ciągu tygodnia od kapitulacji (20.11), prz
 - **Rentowność obligacji CoreWeave 2031/2032 i CDS CoreWeave, Oracle i SpaceX.** Rentowność stale powyżej 18% albo spadek ceny 2032 poniżej 70 centów oznaczałby, że rynek zakłada restrukturyzację.
 - **Decyzja S&P w sprawie Nvidii (do ok. 23.02.2027) i przesłuchanie w komisji bankowej Senatu w sprawie eksportu.** Ewentualne ustalenia o naruszeniach eksportu to scenariusz wykraczający poza obniżkę o jeden stopień.
 - **Raportowanie trafności prompt cache przez dostawców API** (Google po aktualizacji 25.11, OpenAI, Anthropic) jako składnik efektywnej ceny tokena.
-- **Re:Invent (od 30.11):** nowe instancje Trainium, ceny GPU w EC2 oraz to, czy AWS rozszerzy AI Security w WAF na regiony UE (Frankfurt, Irlandia).
+- **AWS re:Invent (przełom listopada i grudnia):** nowe instancje Trainium, ceny GPU w EC2 oraz to, czy AWS rozszerzy AI Security w WAF na regiony UE (Frankfurt, Irlandia).
 - **Underwriting DC w ASEAN:** kolejne wstrzymane kredyty, licencje BIS dla operatorów w Malezji i Singapurze, wyceny malezyjskich spółek DC.
